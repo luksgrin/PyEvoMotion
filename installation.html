@@ -1,0 +1,176 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; PyEvoMotion 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/_css/style_extension.css?v=9abbe321" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyEvoMotion" href="modules.html" />
+    <link rel="prev" title="Overview" href="overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyEvoMotion
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">PyEvoMotion</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyEvoMotion</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code> uses <a class="reference external" href="https://mafft.cbrc.jp/alignment/software/">mafft</a> to do the sequence alignment. If it’s not available in your system, the installation script will install it locally.</p>
+<p>If so, ensure to restart your shell session or run <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">~/.bashrc</span></code> to update the PATH environment variable, so that the <code class="docutils literal notranslate"><span class="pre">mafft</span></code> executable is available in your shell.</p>
+</div>
+<p>To install <code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code> you must clone the repository and run the installation script:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/luksgrin/PyEvoMotion
+<span class="nb">cd</span><span class="w"> </span>PyEvoMotion
+python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+<p>This will install the package and its dependencies.</p>
+<p>To check if the installation was successful, you can run the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>PyEvoMotion
+</pre></div>
+</div>
+<p>If the installation was successful, you should see the following output:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>Welcome<span class="w"> </span>to<span class="w"> </span>Rodrigolab<span class="s1">&#39;s</span>
+<span class="s1">_____       ______          __  __       _   _</span>
+<span class="s1">|  __ \     |  ____|        |  \/  |     | | (_)</span>
+<span class="s1">| |__) |   _| |____   _____ | \  / | ___ | |_ _  ___  _ __</span>
+<span class="s1">|  ___/ | | |  __\ \ / / _ \| |\/| |/ _ \| __| |/ _ \| &#39;</span>_<span class="w"> </span><span class="se">\</span>
+<span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w">   </span><span class="p">|</span><span class="w"> </span><span class="p">|</span>_<span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span>___<span class="se">\ </span>V<span class="w"> </span>/<span class="w"> </span><span class="o">(</span>_<span class="o">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="o">(</span>_<span class="o">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span>_<span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="o">(</span>_<span class="o">)</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="p">|</span>
+<span class="p">|</span>_<span class="p">|</span><span class="w">    </span><span class="se">\_</span>_,<span class="w"> </span><span class="p">|</span>______<span class="se">\_</span>/<span class="w"> </span><span class="se">\_</span>__/<span class="p">|</span>_<span class="p">|</span><span class="w">  </span><span class="p">|</span>_<span class="p">|</span><span class="se">\_</span>__/<span class="w"> </span><span class="se">\_</span>_<span class="p">|</span>_<span class="p">|</span><span class="se">\_</span>__/<span class="p">|</span>_<span class="p">|</span><span class="w"> </span><span class="p">|</span>_<span class="p">|</span>
+<span class="w">      </span>__/<span class="w"> </span><span class="p">|</span>
+<span class="w">      </span><span class="p">|</span>___/
+
+usage:<span class="w"> </span>PyEvoMotion<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span><span class="o">[</span>-dt<span class="w"> </span>DELTA_T<span class="o">]</span><span class="w"> </span><span class="o">[</span>-sh<span class="o">]</span><span class="w"> </span><span class="o">[</span>-ep<span class="o">]</span><span class="w"> </span><span class="o">[</span>-l<span class="w"> </span>LENGTH_FILTER<span class="o">]</span><span class="w"> </span><span class="o">[</span>-n<span class="w"> </span>N_THRESHOLD<span class="o">]</span><span class="w"> </span><span class="o">[</span>-xj<span class="o">]</span><span class="w"> </span><span class="o">[</span>-ij<span class="w"> </span>IMPORT_JSON<span class="o">]</span><span class="w"> </span><span class="o">[</span>-k<span class="w"> </span><span class="o">{</span>all,total,substitutions,insertions,deletions,indels<span class="o">}]</span><span class="w"> </span><span class="o">[</span>-f<span class="w"> </span>FILTER<span class="w"> </span><span class="o">[</span>FILTER<span class="w"> </span>...<span class="o">]]</span><span class="w"> </span><span class="o">[</span>-gp<span class="w"> </span>GENOME_POSITIONS<span class="o">]</span><span class="w"> </span><span class="o">[</span>-dr<span class="w"> </span>DATE_RANGE<span class="o">]</span><span class="w"> </span>seqs<span class="w"> </span>meta<span class="w"> </span>out
+
+PyEvoMotion
+
+positional<span class="w"> </span>arguments:
+seqs<span class="w">                  </span>Path<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>input<span class="w"> </span>fasta<span class="w"> </span>file<span class="w"> </span>containing<span class="w"> </span>the<span class="w"> </span>sequences.
+meta<span class="w">                  </span>Path<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>corresponding<span class="w"> </span>metadata<span class="w"> </span>file<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>sequences.
+out<span class="w">                   </span>Path<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>output<span class="w"> </span>filename<span class="w"> </span>prefix<span class="w"> </span>used<span class="w"> </span>to<span class="w"> </span>save<span class="w"> </span>the<span class="w"> </span>different<span class="w"> </span>results.
+
+options:
+-h,<span class="w"> </span>--help<span class="w">            </span>show<span class="w"> </span>this<span class="w"> </span><span class="nb">help</span><span class="w"> </span>message<span class="w"> </span>and<span class="w"> </span><span class="nb">exit</span>
+-dt<span class="w"> </span>DELTA_T,<span class="w"> </span>--delta_t<span class="w"> </span>DELTA_T
+<span class="w">                        </span>Time<span class="w"> </span>interval<span class="w"> </span>to<span class="w"> </span>calculate<span class="w"> </span>the<span class="w"> </span>statistics.<span class="w"> </span>Default<span class="w"> </span>is<span class="w"> </span><span class="m">7</span><span class="w"> </span>days<span class="w"> </span><span class="o">(</span>7D<span class="o">)</span>.
+-sh,<span class="w"> </span>--show<span class="w">           </span>Show<span class="w"> </span>the<span class="w"> </span>plots<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>analysis.
+-ep,<span class="w"> </span>--export_plots<span class="w">   </span>Export<span class="w"> </span>the<span class="w"> </span>plots<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>analysis.
+-l<span class="w"> </span>LENGTH_FILTER,<span class="w"> </span>--length_filter<span class="w"> </span>LENGTH_FILTER
+<span class="w">                        </span>Length<span class="w"> </span>filter<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>sequences<span class="w"> </span><span class="o">(</span>removes<span class="w"> </span>sequences<span class="w"> </span>with<span class="w"> </span>length<span class="w"> </span>less<span class="w"> </span>than<span class="w"> </span>the<span class="w"> </span>specified<span class="w"> </span>value<span class="o">)</span>.<span class="w"> </span>Default<span class="w"> </span>is<span class="w"> </span><span class="m">0</span>.
+-n<span class="w"> </span>N_THRESHOLD,<span class="w"> </span>--n_threshold<span class="w"> </span>N_THRESHOLD
+<span class="w">                        </span>Minimum<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>sequences<span class="w"> </span>required<span class="w"> </span><span class="k">in</span><span class="w"> </span>a<span class="w"> </span><span class="nb">time</span><span class="w"> </span>interval<span class="w"> </span>to<span class="w"> </span>compute<span class="w"> </span>statistics.<span class="w"> </span>Default<span class="w"> </span>is<span class="w"> </span><span class="m">2</span>.
+-xj,<span class="w"> </span>--export_json<span class="w">    </span>Export<span class="w"> </span>the<span class="w"> </span>run<span class="w"> </span>arguments<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>json<span class="w"> </span>file.
+-ij<span class="w"> </span>IMPORT_JSON,<span class="w"> </span>--import_json<span class="w"> </span>IMPORT_JSON
+<span class="w">                        </span>Import<span class="w"> </span>the<span class="w"> </span>run<span class="w"> </span>arguments<span class="w"> </span>from<span class="w"> </span>a<span class="w"> </span>JSON<span class="w"> </span>file.<span class="w"> </span>If<span class="w"> </span>this<span class="w"> </span>argument<span class="w"> </span>is<span class="w"> </span>passed,<span class="w"> </span>the<span class="w"> </span>other<span class="w"> </span>arguments<span class="w"> </span>are<span class="w"> </span>ignored.<span class="w"> </span>The<span class="w"> </span>JSON<span class="w"> </span>file<span class="w"> </span>must<span class="w"> </span>contain<span class="w"> </span>the<span class="w"> </span>mandatory<span class="w"> </span>keys<span class="w"> </span><span class="s1">&#39;seqs&#39;</span>,<span class="w"> </span><span class="s1">&#39;meta&#39;</span>,<span class="w"> </span>and<span class="w"> </span><span class="s1">&#39;out&#39;</span>.
+-k<span class="w"> </span><span class="o">{</span>all,total,substitutions,insertions,deletions,indels<span class="o">}</span>,<span class="w"> </span>--kind<span class="w"> </span><span class="o">{</span>all,total,substitutions,insertions,deletions,indels<span class="o">}</span>
+<span class="w">                        </span>Kind<span class="w"> </span>of<span class="w"> </span>mutations<span class="w"> </span>to<span class="w"> </span>consider<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>analysis.<span class="w"> </span>Default<span class="w"> </span>is<span class="w"> </span><span class="s1">&#39;all&#39;</span>.
+-f<span class="w"> </span>FILTER<span class="w"> </span><span class="o">[</span>FILTER<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>--filter<span class="w"> </span>FILTER<span class="w"> </span><span class="o">[</span>FILTER<span class="w"> </span>...<span class="o">]</span>
+<span class="w">                        </span>Specify<span class="w"> </span>filters<span class="w"> </span>to<span class="w"> </span>be<span class="w"> </span>applied<span class="w"> </span>on<span class="w"> </span>the<span class="w"> </span>data<span class="w"> </span>with<span class="w"> </span>keys<span class="w"> </span>followed<span class="w"> </span>by<span class="w"> </span>values.<span class="w"> </span>If<span class="w"> </span>the<span class="w"> </span>values<span class="w"> </span>are<span class="w"> </span>multiple,<span class="w"> </span>they<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span>enclosed<span class="w"> </span><span class="k">in</span><span class="w"> </span>square<span class="w"> </span>brackets.<span class="w"> </span>Example:<span class="w"> </span>--filter<span class="w"> </span>key1<span class="w"> </span>value1<span class="w"> </span>key2<span class="w"> </span><span class="o">[</span>value2<span class="w"> </span>value3<span class="o">]</span><span class="w"> </span>key3<span class="w"> </span>value4.<span class="w"> </span>If<span class="w"> </span>either<span class="w"> </span>the<span class="w"> </span>keys<span class="w"> </span>or<span class="w"> </span>values
+<span class="w">                        </span>contain<span class="w"> </span>spaces,<span class="w"> </span>they<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span>enclosed<span class="w"> </span><span class="k">in</span><span class="w"> </span>quotes.<span class="w"> </span>keys<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span>present<span class="w"> </span><span class="k">in</span><span class="w"> </span>the<span class="w"> </span>metadata<span class="w"> </span>file<span class="w"> </span>as<span class="w"> </span>columns<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>filter<span class="w"> </span>to<span class="w"> </span>be<span class="w"> </span>applied.<span class="w"> </span>Use<span class="w"> </span><span class="s1">&#39;*&#39;</span><span class="w"> </span>as<span class="w"> </span>a<span class="w"> </span>wildcard,<span class="w"> </span><span class="k">for</span><span class="w"> </span>example<span class="w"> </span>Bio*<span class="w"> </span>to<span class="w"> </span>filter<span class="w"> </span>all<span class="w"> </span>columns<span class="w"> </span>starting<span class="w"> </span>with<span class="w"> </span><span class="s1">&#39;Bio&#39;</span>.
+-gp<span class="w"> </span>GENOME_POSITIONS,<span class="w"> </span>--genome_positions<span class="w"> </span>GENOME_POSITIONS
+<span class="w">                        </span>Genome<span class="w"> </span>positions<span class="w"> </span>to<span class="w"> </span>restrict<span class="w"> </span>the<span class="w"> </span>analysis.<span class="w"> </span>The<span class="w"> </span>positions<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span>separated<span class="w"> </span>by<span class="w"> </span>two<span class="w"> </span>dots.<span class="w"> </span>Example:<span class="w"> </span><span class="m">1</span>..1000.<span class="w"> </span>Open<span class="w"> </span>start<span class="w"> </span>or<span class="w"> </span>end<span class="w"> </span>positions<span class="w"> </span>are<span class="w"> </span>allowed<span class="w"> </span>by<span class="w"> </span>omitting<span class="w"> </span>the<span class="w"> </span>first<span class="w"> </span>or<span class="w"> </span>last<span class="w"> </span>position,<span class="w"> </span>respectively.<span class="w"> </span>If<span class="w"> </span>not<span class="w"> </span>specified,<span class="w"> </span>the<span class="w"> </span>whole
+<span class="w">                        </span>reference<span class="w"> </span>genome<span class="w"> </span>is<span class="w"> </span>considered.
+-dr<span class="w"> </span>DATE_RANGE,<span class="w"> </span>--date_range<span class="w"> </span>DATE_RANGE
+<span class="w">                        </span>Date<span class="w"> </span>range<span class="w"> </span>to<span class="w"> </span>filter<span class="w"> </span>the<span class="w"> </span>data.<span class="w"> </span>The<span class="w"> </span>date<span class="w"> </span>range<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span>separated<span class="w"> </span>by<span class="w"> </span>two<span class="w"> </span>dots<span class="w"> </span>and<span class="w"> </span>the<span class="w"> </span>format<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span>YYYY-MM-DD.<span class="w"> </span>Example:<span class="w"> </span><span class="m">2020</span>-01-01..2020-12-31.<span class="w"> </span>If<span class="w"> </span>not<span class="w"> </span>specified,<span class="w"> </span>the<span class="w"> </span>whole<span class="w"> </span>dataset<span class="w"> </span>is<span class="w"> </span>considered.<span class="w"> </span>Note<span class="w"> </span>that<span class="w"> </span><span class="k">if</span><span class="w"> </span>the<span class="w"> </span>origin<span class="w"> </span>is<span class="w"> </span>specified,<span class="w"> </span>the
+<span class="w">                        </span>most<span class="w"> </span>restrictive<span class="w"> </span>date<span class="w"> </span>range<span class="w"> </span>is<span class="w"> </span>considered.
+
+Error:<span class="w"> </span>the<span class="w"> </span>following<span class="w"> </span>arguments<span class="w"> </span>are<span class="w"> </span>required:<span class="w"> </span>seqs,<span class="w"> </span>meta,<span class="w"> </span>out
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="overview.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-right" title="PyEvoMotion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Lucas Goiriz &amp; Guillermo Rodrigo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,169 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overview &mdash; PyEvoMotion 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/_css/style_extension.css?v=9abbe321" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2709fde1"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="PyEvoMotion documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyEvoMotion
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">PyEvoMotion</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyEvoMotion</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="overview">
+<span id="id1"></span><h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
+<p>The study of molecular evolution is a central topic in biology. The molecular clock hypothesis assumes that genes accumulate mutations at a constant rate over time <span id="id2">[<a class="reference internal" href="#id13" title="M. Kimura. Molecular evolutionary clock and the neutral theory. J Mol Evol, 26(1–2):24–33, 1987. URL: https://doi.org/10.1007/bf02111279, doi:10.1007/bf02111279.">7</a>]</span>. Moreover, under the consideration that most of the accumulated mutations are neutral, the Poisson distribution models the expected variability. The molecular clock hypothesis has become a cornerstone of modern phylogenetic techniques, which are now standard for studying the evolutionary relationships between species and organisms <span id="id3">[<a class="reference internal" href="#id14" title="S. Kumar. Molecular clocks: four decades of evolution. Nat Rev Genet, 6(8):654–662, 2005. URL: https://doi.org/10.1038/nrg1659, doi:10.1038/nrg1659.">8</a>]</span>.</p>
+<p>It has been shown, however, that the simple molecular clock model fails to universally recapitulate evolutionary trajectories. Observations revealed that in some cases mutations do not accumulate at a constant rate <span id="id4">[<a class="reference internal" href="#id15" title="F. J. Ayala. Vagaries of the molecular clock. Proc Natl Acad Sci USA, 94(15):7776–7783, 1997. URL: https://doi.org/10.1073/pnas.94.15.7776, doi:10.1073/pnas.94.15.7776.">1</a>]</span>. This led to the development of relaxed molecular clocks, in which the rates of mutation accumulation are not uniform across lineages <span id="id5">[<a class="reference internal" href="#id16" title="A. J. Drummond, S. Y. W. Ho, M. J. Phillips, and A. Rambaut. Relaxed phylogenetics and dating with confidence. PLoS Biol, 4(5):e88, 2006. URL: https://doi.org/10.1371/journal.pbio.0040088, doi:10.1371/journal.pbio.0040088.">4</a>]</span>. Although these clocks have proven to be more accurate in certain cases, they still face difficulties to model, for instance, overdispersed populations <span id="id6">[<a class="reference internal" href="#id17" title="T. Bedford, I. Wapinski, and D. L. Hartl. Overdispersion of the molecular clock varies between yeast, drosophila and mammals. Genetics, 179(2):977–984, 2008. URL: https://doi.org/10.1534/genetics.108.089185, doi:10.1534/genetics.108.089185.">2</a>]</span>. A proper analysis of the time-dependent distribution of the number of mutations in the population is necessary to understand and eventually predict the evolutionary trajectories that take place in nature.</p>
+<p>Although previous studies have attempted to abstract molecular evolution as a type of diffusion process in the sequence space <span id="id7">[<a class="reference internal" href="#id18" title="M. A. Huynen, P. F. Stadler, and W. Fontana. Smoothness within ruggedness: the role of neutrality in adaptation. Proc Natl Acad Sci USA, 93(1):397–401, 1996. URL: https://doi.org/10.1073/pnas.93.1.397, doi:10.1073/pnas.93.1.397.">6</a>, <a class="reference internal" href="#id13" title="M. Kimura. Molecular evolutionary clock and the neutral theory. J Mol Evol, 26(1–2):24–33, 1987. URL: https://doi.org/10.1007/bf02111279, doi:10.1007/bf02111279.">7</a>]</span>, little attention has been given to the form of the underlying stochastic process. In our previous work, we showed that non-Brownian evolutionary motions occurred within the lineages of a virus, leading to non-Poissonian distributions <span id="id8">[<a class="reference internal" href="#id19" title="L. Goiriz, R. Ruiz, Ã’. Garibo-i-Orts, J. A. Conejero, and G. Rodrigo. A variant-dependent molecular clock with anomalous diffusion models sars-cov-2 evolution in humans. Proc Natl Acad Sci USA, 120(30):e2303578120, 2023. URL: https://doi.org/10.1073/pnas.2303578120, doi:10.1073/pnas.2303578120.">5</a>]</span>. Here, we present PyEvoMotion, a Python tool aimed to infer a generalized molecular clock model upon bulk genomic data analysis, featuring a command-line interface and enough modularity for integration into larger Python pipelines. PyEvoMotion is intended to complement traditional phylogenetic analyses.</p>
+<p>Traditional phylogenetic methods, while powerful, face computational limitations when applied to large datasets. Indeed, analyzing more than <span class="math notranslate nohighlight">\(10^4\)</span> sequences becomes impractical due to the exponential complexity of reconstructing evolutionary trees <span id="id9">[<a class="reference internal" href="#id20" title="B. Chor and T. Tuller. Maximum likelihood of evolutionary trees: hardness and approximation. Bioinformatics, 21(S1):i97–i106, 2005. URL: https://doi.org/10.1093/bioinformatics/bti1027, doi:10.1093/bioinformatics/bti1027.">3</a>]</span>. To overcome this bottleneck, statistical approaches provide a viable alternative <span id="id10">[<a class="reference internal" href="#id19" title="L. Goiriz, R. Ruiz, Ã’. Garibo-i-Orts, J. A. Conejero, and G. Rodrigo. A variant-dependent molecular clock with anomalous diffusion models sars-cov-2 evolution in humans. Proc Natl Acad Sci USA, 120(30):e2303578120, 2023. URL: https://doi.org/10.1073/pnas.2303578120, doi:10.1073/pnas.2303578120.">5</a>, <a class="reference internal" href="#id21" title="F. Obermeyer, M. Jankowiak, N. Barkas, S. F. Schaffner, J. D. Pyle, L. Yurkovetskiy, and et al. Analysis of 6.4 million sars-cov-2 genomes identifies mutations associated with fitness. Science, 376(6599):1327–1332, 2022. URL: https://doi.org/10.1126/science.abm1208, doi:10.1126/science.abm1208.">9</a>]</span>. These methods simplify the representation of evolutionary relationships by focusing on patterns of population genetics rather than exhaustive tree reconstruction based on genetic variation. PyEvoMotion leverages stochastic mathematical modeling to assess evolutionary trends, aiming to process datasets orders of magnitude larger than those typically analyzed. This capability is essential for handling the unprecedented volume of genomic data generated by high-throughput sequencing efforts <span id="id11">[<a class="reference internal" href="#id22" title="B. B. Oude Munnink, D. F. Nieuwenhuijse, M. Stein, A. O'Toole, M. Haverkate, M. Mollers, S. K. Kamga, C. Schapendonk, M. Pronk, P. Lexmond, and et al. Rapid sars-cov-2 whole-genome sequencing and analysis for informed public health decision-making in the netherlands. Nat Med, 26(9):1405–1410, 2020. URL: https://doi.org/10.1038/s41591-020-0997-y, doi:10.1038/s41591-020-0997-y.">10</a>]</span>.</p>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<div class="docutils container" id="id12">
+<div role="list" class="citation-list">
+<div class="citation" id="id15" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">1</a><span class="fn-bracket">]</span></span>
+<p>F. J. Ayala. Vagaries of the molecular clock. <em>Proc Natl Acad Sci USA</em>, 94(15):7776–7783, 1997. URL: <a class="reference external" href="https://doi.org/10.1073/pnas.94.15.7776">https://doi.org/10.1073/pnas.94.15.7776</a>, <a class="reference external" href="https://doi.org/10.1073/pnas.94.15.7776">doi:10.1073/pnas.94.15.7776</a>.</p>
+</div>
+<div class="citation" id="id17" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id6">2</a><span class="fn-bracket">]</span></span>
+<p>T. Bedford, I. Wapinski, and D. L. Hartl. Overdispersion of the molecular clock varies between yeast, drosophila and mammals. <em>Genetics</em>, 179(2):977–984, 2008. URL: <a class="reference external" href="https://doi.org/10.1534/genetics.108.089185">https://doi.org/10.1534/genetics.108.089185</a>, <a class="reference external" href="https://doi.org/10.1534/genetics.108.089185">doi:10.1534/genetics.108.089185</a>.</p>
+</div>
+<div class="citation" id="id20" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id9">3</a><span class="fn-bracket">]</span></span>
+<p>B. Chor and T. Tuller. Maximum likelihood of evolutionary trees: hardness and approximation. <em>Bioinformatics</em>, 21(S1):i97–i106, 2005. URL: <a class="reference external" href="https://doi.org/10.1093/bioinformatics/bti1027">https://doi.org/10.1093/bioinformatics/bti1027</a>, <a class="reference external" href="https://doi.org/10.1093/bioinformatics/bti1027">doi:10.1093/bioinformatics/bti1027</a>.</p>
+</div>
+<div class="citation" id="id16" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">4</a><span class="fn-bracket">]</span></span>
+<p>A. J. Drummond, S. Y. W. Ho, M. J. Phillips, and A. Rambaut. Relaxed phylogenetics and dating with confidence. <em>PLoS Biol</em>, 4(5):e88, 2006. URL: <a class="reference external" href="https://doi.org/10.1371/journal.pbio.0040088">https://doi.org/10.1371/journal.pbio.0040088</a>, <a class="reference external" href="https://doi.org/10.1371/journal.pbio.0040088">doi:10.1371/journal.pbio.0040088</a>.</p>
+</div>
+<div class="citation" id="id19" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>5<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id8">1</a>,<a role="doc-backlink" href="#id10">2</a>)</span>
+<p>L. Goiriz, R. Ruiz, Ã’. Garibo-i-Orts, J. A. Conejero, and G. Rodrigo. A variant-dependent molecular clock with anomalous diffusion models sars-cov-2 evolution in humans. <em>Proc Natl Acad Sci USA</em>, 120(30):e2303578120, 2023. URL: <a class="reference external" href="https://doi.org/10.1073/pnas.2303578120">https://doi.org/10.1073/pnas.2303578120</a>, <a class="reference external" href="https://doi.org/10.1073/pnas.2303578120">doi:10.1073/pnas.2303578120</a>.</p>
+</div>
+<div class="citation" id="id18" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id7">6</a><span class="fn-bracket">]</span></span>
+<p>M. A. Huynen, P. F. Stadler, and W. Fontana. Smoothness within ruggedness: the role of neutrality in adaptation. <em>Proc Natl Acad Sci USA</em>, 93(1):397–401, 1996. URL: <a class="reference external" href="https://doi.org/10.1073/pnas.93.1.397">https://doi.org/10.1073/pnas.93.1.397</a>, <a class="reference external" href="https://doi.org/10.1073/pnas.93.1.397">doi:10.1073/pnas.93.1.397</a>.</p>
+</div>
+<div class="citation" id="id13" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>7<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id2">1</a>,<a role="doc-backlink" href="#id7">2</a>)</span>
+<p>M. Kimura. Molecular evolutionary clock and the neutral theory. <em>J Mol Evol</em>, 26(1–2):24–33, 1987. URL: <a class="reference external" href="https://doi.org/10.1007/bf02111279">https://doi.org/10.1007/bf02111279</a>, <a class="reference external" href="https://doi.org/10.1007/bf02111279">doi:10.1007/bf02111279</a>.</p>
+</div>
+<div class="citation" id="id14" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">8</a><span class="fn-bracket">]</span></span>
+<p>S. Kumar. Molecular clocks: four decades of evolution. <em>Nat Rev Genet</em>, 6(8):654–662, 2005. URL: <a class="reference external" href="https://doi.org/10.1038/nrg1659">https://doi.org/10.1038/nrg1659</a>, <a class="reference external" href="https://doi.org/10.1038/nrg1659">doi:10.1038/nrg1659</a>.</p>
+</div>
+<div class="citation" id="id21" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id10">9</a><span class="fn-bracket">]</span></span>
+<p>F. Obermeyer, M. Jankowiak, N. Barkas, S. F. Schaffner, J. D. Pyle, L. Yurkovetskiy, and et al. Analysis of 6.4 million sars-cov-2 genomes identifies mutations associated with fitness. <em>Science</em>, 376(6599):1327–1332, 2022. URL: <a class="reference external" href="https://doi.org/10.1126/science.abm1208">https://doi.org/10.1126/science.abm1208</a>, <a class="reference external" href="https://doi.org/10.1126/science.abm1208">doi:10.1126/science.abm1208</a>.</p>
+</div>
+<div class="citation" id="id22" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id11">10</a><span class="fn-bracket">]</span></span>
+<p>B. B. Oude Munnink, D. F. Nieuwenhuijse, M. Stein, A. O'Toole, M. Haverkate, M. Mollers, S. K. Kamga, C. Schapendonk, M. Pronk, P. Lexmond, and et al. Rapid sars-cov-2 whole-genome sequencing and analysis for informed public health decision-making in the netherlands. <em>Nat Med</em>, 26(9):1405–1410, 2020. URL: <a class="reference external" href="https://doi.org/10.1038/s41591-020-0997-y">https://doi.org/10.1038/s41591-020-0997-y</a>, <a class="reference external" href="https://doi.org/10.1038/s41591-020-0997-y">doi:10.1038/s41591-020-0997-y</a>.</p>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="PyEvoMotion documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Lucas Goiriz &amp; Guillermo Rodrigo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

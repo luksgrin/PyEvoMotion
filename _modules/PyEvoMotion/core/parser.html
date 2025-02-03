@@ -1,0 +1,601 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyEvoMotion.core.parser &mdash; PyEvoMotion 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/_css/style_extension.css?v=9abbe321" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyEvoMotion
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">PyEvoMotion</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyEvoMotion</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">PyEvoMotion.core.parser</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for PyEvoMotion.core.parser</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">Bio</span> <span class="kn">import</span> <span class="n">SeqIO</span><span class="p">,</span> <span class="n">AlignIO</span>
+<span class="kn">from</span> <span class="nn">Bio.SeqRecord</span> <span class="kn">import</span> <span class="n">SeqRecord</span>
+<span class="kn">from</span> <span class="nn">Bio.Align</span> <span class="kn">import</span> <span class="n">MultipleSeqAlignment</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">StringIO</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span> <span class="nn">operator</span> <span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">Popen</span><span class="p">,</span> <span class="n">PIPE</span>
+
+
+<div class="viewcode-block" id="PyEvoMotionParser">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser">[docs]</a>
+<span class="k">class</span> <span class="nc">PyEvoMotionParser</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This class is responsible for parsing the input fasta and metadata files. It is inherited by the :class:`PyEvoMotion` class.</span>
+
+<span class="sd">    :param input_fasta: The path to the input ``.fasta`` file.</span>
+<span class="sd">    :type input_fasta: str</span>
+<span class="sd">    :param input_meta: The path to the input metadata file. The metadata file must contain a ``date`` column and can be in either ``.csv`` or ``.tsv`` format.</span>
+<span class="sd">    :type input_meta: str</span>
+<span class="sd">    :param filters: The filters to be applied to the data. The keys are the column names and the values are the values to be filtered.</span>
+<span class="sd">    :type filters: dict[str, list[str] | str]</span>
+<span class="sd">    :param positions: The start and end positions to filter the data by.</span>
+<span class="sd">    :type positions: tuple[int]</span>
+<span class="sd">    :param date_range: The start and end dates to filter the data by. If ``None``, the date range is not filtered.</span>
+<span class="sd">    :type date_range: tuple[datetime] | None</span>
+<span class="sd">    </span>
+<span class="sd">    On construction, it invokes the following methods:</span>
+<span class="sd">        - :meth:`parse_metadata`: Parses the metadata file.</span>
+<span class="sd">        - :meth:`parse_sequence_by_id`: Parses the sequence with the ID of the first entry in the metadata file.</span>
+<span class="sd">        - :meth:`filter_columns`: Filters the metadata based on the input filters.</span>
+<span class="sd">        - :meth:`filter_by_daterange`: Filters the metadata based on the input date range.</span>
+<span class="sd">        - :meth:`parse_data`: Parses the input fasta file and appends the mutations that differ between the reference sequence and the input sequences to the metadata.</span>
+<span class="sd">        - :meth:`filter_by_position`: Filters the metadata based on the input start and end positions.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    data: ``pd.DataFrame``</span>
+<span class="sd">        DataFrame containing metadata.</span>
+<span class="sd">    reference: ``SeqRecord``</span>
+<span class="sd">        The reference sequence parsed from the fasta file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_fasta</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">input_meta</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">filters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">],</span>
+        <span class="n">positions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">date_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the class with input FASTA and metadata files.</span>
+
+<span class="sd">        :param input_fasta: The path to the input FASTA file.</span>
+<span class="sd">        :type input_fasta: str</span>
+<span class="sd">        :param input_meta: The path to the input metadata file.</span>
+<span class="sd">        :type input_meta: str</span>
+<span class="sd">        :param filters: The filters to be applied to the data. The keys are the column names and the values are the values to be filtered.</span>
+<span class="sd">        :type filters: dict[str, list[str] | str]</span>
+<span class="sd">        :param positions: The start and end positions to filter the data by.</span>
+<span class="sd">        :type positions: tuple[int]</span>
+<span class="sd">        :param date_range: The start and end dates to filter the data by. If None, the date range is not filtered.</span>
+<span class="sd">        :type date_range: tuple[datetime] | None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_metadata</span><span class="p">(</span><span class="n">input_meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_sequence_by_id</span><span class="p">(</span>
+            <span class="n">input_fasta</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="c1"># Implicitly filters the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_columns</span><span class="p">(</span><span class="n">filters</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">date_range</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filter_by_daterange</span><span class="p">(</span><span class="o">*</span><span class="n">date_range</span><span class="p">)</span>
+        <span class="c1"># Appends the mutations that differ between the reference sequence and the input sequences to the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parse_data</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+        <span class="c1"># Applies the position filter if provided</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filter_by_position</span><span class="p">(</span><span class="o">*</span><span class="n">positions</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PyEvoMotionParser.parse_data">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.parse_data">[docs]</a>
+    <span class="k">def</span> <span class="nf">parse_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_fasta</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">selection</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the input fasta file and store the resulting data in the ``data`` attribute.</span>
+
+<span class="sd">        :param input_fasta: The path to the input ``.fasta`` file.</span>
+<span class="sd">        :type input_fasta: str</span>
+<span class="sd">        :param selection: The selection of sequence ids to be parsed.</span>
+<span class="sd">        :type selection: pd.Series</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
+            <span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_differing_mutations</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">,</span> <span class="n">selection</span><span class="p">),</span>
+                <span class="n">on</span><span class="o">=</span><span class="s2">&quot;id&quot;</span><span class="p">,</span>
+                <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotionParser.filter_by_daterange">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.filter_by_daterange">[docs]</a>
+    <span class="k">def</span> <span class="nf">filter_by_daterange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filter the data based on a date range.</span>
+
+<span class="sd">        The data is filtered to only include entries with dates between the start and end dates. This method modifies the ``data`` attribute in place.</span>
+
+<span class="sd">        :param start: The start date.</span>
+<span class="sd">        :type start: datetime</span>
+<span class="sd">        :param end: The end date.</span>
+<span class="sd">        :type end: datetime</span>
+<span class="sd">        :raises ValueError: If the start date is greater than the end date.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">start</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">start</span><span class="p">)</span> <span class="k">if</span> <span class="n">start</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">end</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">end</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="n">end</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Start date must be smaller than end date&quot;</span><span class="p">)</span>    
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">start</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">end</span><span class="p">)</span>
+        <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotionParser.filter_by_position">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.filter_by_position">[docs]</a>
+    <span class="k">def</span> <span class="nf">filter_by_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filter the data based on some start and end positions in the reference sequence.</span>
+
+<span class="sd">        *Note that the positions are 1-indexed, and that the end position is inclusive.*</span>
+
+<span class="sd">        :param start: The start position index.</span>
+<span class="sd">        :type start: int</span>
+<span class="sd">        :param end: The end position index.</span>
+<span class="sd">        :type end: int</span>
+<span class="sd">        :raises ValueError: If the start position is greater than the end position., or if the start position is greater than the length of the reference sequence.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">start</span><span class="p">)</span>  <span class="c1"># Ensure start is at least 1</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">end</span> <span class="k">if</span> <span class="n">end</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">seq</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># Set end if not provided        </span>
+
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Start position must be smaller than end position&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="o">.</span><span class="n">seq</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Start position is out of range&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mutation instructions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mutation instructions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">mod</span>
+                <span class="k">for</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">x</span>
+                <span class="k">if</span> <span class="n">start</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">int</span><span class="p">(</span><span class="n">mod</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">end</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mutation instructions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="nb">len</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotionParser.filter_columns">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.filter_columns">[docs]</a>
+    <span class="k">def</span> <span class="nf">filter_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filter the data based on the input filters provided.</span>
+
+<span class="sd">        :param filters: The filters to be applied to the data. The keys are the column names and the values are the values to be filtered from the provided metadata.</span>
+<span class="sd">        :type filters: dict[str, list[str] | str]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Only keep filters that are columns in the data</span>
+        <span class="n">_filters</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">filters</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">_filters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">vals</span><span class="p">]</span>
+            <span class="n">regex_pattern</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">val</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;.*&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">vals</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span>
+                    <span class="n">regex_pattern</span><span class="p">,</span>
+                    <span class="n">regex</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+            <span class="p">]</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_consecutives</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Groups list of ordered integers into list of groups of integers</span>
+<span class="sd">        </span>
+<span class="sd">        :param data: a list of ordered integers.</span>
+<span class="sd">        :type data: list[int]</span>
+<span class="sd">        :return idxs: a list of lists of consecutive integers.</span>
+<span class="sd">        :rtype: list[list[int]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">idxs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span>
+            <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">),</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="n">idxs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">g</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">idxs</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_column_decision</span><span class="p">(</span><span class="n">col</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Classifies bases in array column</span>
+
+<span class="sd">        :param col: column with two rows, containing one of these symbols: A, G, T, C, N, -</span>
+<span class="sd">        :type col: np.array</span>
+<span class="sd">        :return: returns an integer indicating if match (0), mismatch (1), insertion (2) or deletion (3).</span>
+<span class="sd">        :rtype: int</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># If there&#39;s a match, return 0. In the case that there&#39;s an insertion of an N, we also return 0 as it&#39;s probably a sequencing error</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">col</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="ow">or</span> <span class="p">(</span><span class="s2">&quot;N&quot;</span> <span class="ow">in</span> <span class="n">col</span><span class="p">)):</span> <span class="k">return</span> <span class="mi">0</span>
+        
+        <span class="c1"># If there&#39;s an insertion, return 2</span>
+        <span class="k">elif</span> <span class="n">col</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span> <span class="k">return</span> <span class="mi">2</span>
+
+        <span class="c1"># If there&#39;s a deletion, return 3</span>
+        <span class="k">elif</span> <span class="n">col</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span> <span class="k">return</span> <span class="mi">3</span>
+
+        <span class="c1"># Else, it has to be a mismatch. Return 1</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="PyEvoMotionParser.create_modifs">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.create_modifs">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create_modifs</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">alignment</span><span class="p">:</span> <span class="n">MultipleSeqAlignment</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a guide on how to modify the root sequence to get the appropriate mutant sequence.</span>
+
+<span class="sd">        :param alignment: ``Bio.Align.MultipleSeqAlignment`` object containing the alignment.</span>
+<span class="sd">        :type alignment: MultipleSeqAlignment</span>
+<span class="sd">        :return mods: List of modifications encoded as strings that have the format ``&lt;type&gt;_&lt;position&gt;_&lt;bases&gt;``, where ``&lt;type&gt;`` is one of ``i``, ``d`` and ``s`` (insertion, deletion and substitution), ``&lt;position&gt;`` is the position in the sequence where the modification should be made, and ``&lt;bases&gt;`` are the bases to be inserted, deleted or substituted.</span>
+<span class="sd">        :rtype: ``list[str]``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Turn alignment into np.array</span>
+        <span class="n">coding</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">alignment</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()),</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">alignment</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+        <span class="p">])</span>
+
+        <span class="c1"># Get classification</span>
+        <span class="n">clsMut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">apply_along_axis</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_column_decision</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">coding</span><span class="p">)</span>
+
+        <span class="c1"># Encode substitutions</span>
+        <span class="n">subst</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;s_</span><span class="si">{</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">coding</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">clsMut</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">))</span>
+
+        <span class="c1"># Encode insertions</span>
+        <span class="n">insertions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;i_</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coding</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_get_consecutives</span><span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">clsMut</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span>
+        <span class="p">))</span>
+
+        <span class="c1"># Encode deletions</span>
+        <span class="n">deletions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;d_</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">coding</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_get_consecutives</span><span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">clsMut</span> <span class="o">==</span> <span class="mi">3</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">)</span>
+        <span class="p">))</span>
+
+        <span class="c1"># Blend modifications and order them</span>
+        <span class="n">mods</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">insertions</span> <span class="o">+</span> <span class="n">deletions</span> <span class="o">+</span> <span class="n">subst</span><span class="p">,</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="p">)</span>
+
+        <span class="n">reindex</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">mods</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">el</span><span class="p">),</span><span class="nb">len</span><span class="p">(</span><span class="n">el</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">mods</span>
+            <span class="k">if</span> <span class="n">el</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">reindex</span><span class="p">:</span>
+            <span class="n">mods</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">v</span><span class="p">),</span>
+                    <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)),</span>
+                <span class="n">mods</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+            <span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">mods</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotionParser.get_differing_mutations">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.get_differing_mutations">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_differing_mutations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_fasta</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">selection</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the mutations that differ between the reference sequence and the input sequence.</span>
+
+<span class="sd">        Also, for the sake of sequence selection, it outputs the number of ``N`` found in the sequence.</span>
+
+<span class="sd">        :param input_fasta: The path to the input ``.fasta`` file.</span>
+<span class="sd">        :type input_fasta: str</span>
+<span class="sd">        :param selection: The selection of sequence ids to be compared with the reference sequence.</span>
+<span class="sd">        :type selection: pd.Series</span>
+<span class="sd">        :return: The mutations that differ between the reference sequence and the input sequence. It contains the columns ``id``, ``mutation instructions`` and ``N count`` (the number of ``N`` in the sequence).</span>
+<span class="sd">        :rtype: ``pd.DataFrame``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">aligments</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">SeqIO</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="s2">&quot;fasta&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">selection</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">alignment</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_alignment</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">,</span>
+                    <span class="n">record</span>
+                <span class="p">)</span>
+                <span class="n">aligments</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">create_modifs</span><span class="p">(</span><span class="n">alignment</span><span class="p">),</span>
+                    <span class="n">alignment</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">seq</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;n&quot;</span><span class="p">)</span> <span class="c1"># In alignment fasta files, bases are lowercase</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">[(</span><span class="n">k</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span> <span class="ow">in</span> <span class="n">aligments</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span>
+            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;mutation instructions&quot;</span><span class="p">,</span> <span class="s2">&quot;N count&quot;</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotionParser.generate_alignment">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.generate_alignment">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">generate_alignment</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">seq1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">seq2</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MultipleSeqAlignment</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a multiple sequence alignment of the input sequences using ``MAFFT``.</span>
+
+<span class="sd">        :param seq1: The first sequence to be aligned.</span>
+<span class="sd">        :type seq1: str</span>
+<span class="sd">        :param seq2: The second sequence to be aligned.</span>
+<span class="sd">        :type seq2: str</span>
+<span class="sd">        :return: The aligned sequences.</span>
+<span class="sd">        :rtype: ``MultipleSeqAlignment``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">id_1</span> <span class="o">=</span> <span class="n">seq1</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">id_2</span> <span class="o">=</span> <span class="n">seq2</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="k">if</span> <span class="n">seq1</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">seq2</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="n">id_1</span> <span class="o">+=</span> <span class="s2">&quot;_ref&quot;</span>
+
+        <span class="k">return</span> <span class="n">AlignIO</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+            <span class="n">StringIO</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_run_mafft</span><span class="p">({</span>
+                <span class="n">id_1</span><span class="p">:</span> <span class="n">seq1</span><span class="o">.</span><span class="n">seq</span><span class="p">,</span>
+                <span class="n">id_2</span><span class="p">:</span> <span class="n">seq2</span><span class="o">.</span><span class="n">seq</span>
+            <span class="p">})),</span>
+            <span class="s2">&quot;fasta&quot;</span>
+        <span class="p">)</span></div>
+
+ 
+<div class="viewcode-block" id="PyEvoMotionParser.parse_sequence_by_id">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.parse_sequence_by_id">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">parse_sequence_by_id</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SeqRecord</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the input ``.fasta`` file and return the ``Bio.SeqRecord`` with the given ``_id``. Returns ``None`` if the ``_id`` is not found.</span>
+
+<span class="sd">        :param input_fasta: The path to the input ``.fasta`` file.</span>
+<span class="sd">        :type input_fasta: str</span>
+<span class="sd">        :param _id: The ID of the sequence to be returned.</span>
+<span class="sd">        :type _id: str</span>
+<span class="sd">        :return: The sequence record with the given ``_id``. ``None`` if the ``_id`` is not found.</span>
+<span class="sd">        :rtype: SeqRecord | None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">input_fasta</span><span class="p">)</span> <span class="k">as</span> <span class="n">handle</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">SeqIO</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="s2">&quot;fasta&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">_id</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">record</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_run_mafft</span><span class="p">(</span><span class="n">seqs_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">str</span><span class="p">],</span> <span class="n">outformat</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;fasta&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function runs the MAFFT multiple sequence alignment tool on the input sequences.</span>
+
+<span class="sd">        It raises an exception if the return code is not 0 (i.e. there was an error running MAFFT).</span>
+
+<span class="sd">        :param seqs_dict: A dictionary containing the sequences to be aligned. The keys are the sequence names and the values are the sequences.</span>
+<span class="sd">        :type seqs_dict: dict[str,str]</span>
+<span class="sd">        :param outformat: The output format of the alignment. Default is fasta.</span>
+<span class="sd">        :type outformat: str</span>
+<span class="sd">        :return: The aligned sequences as parsed from stdout. If the output format is clustal, it returns the alignment in clustal format; otherwise, it returns the alignment in fasta format.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;mafft&quot;</span><span class="p">]</span>
+        <span class="n">template_format</span> <span class="o">=</span> <span class="s2">&quot;&gt;</span><span class="si">{}</span><span class="se">\n</span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="n">outformat</span> <span class="o">==</span> <span class="s2">&quot;clustal&quot;</span><span class="p">:</span>
+            <span class="n">cmd</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;--clustalout&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="n">outformat</span> <span class="o">!=</span> <span class="s2">&quot;fasta&quot;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown output format: </span><span class="si">{</span><span class="n">outformat</span><span class="si">}</span><span class="s2">. Defaulting to fasta.&quot;</span><span class="p">)</span>
+
+        <span class="n">cmd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+
+        <span class="n">input_data</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span>
+            <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">template_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">seq</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">seq</span> <span class="ow">in</span> <span class="n">seqs_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;utf-8&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">ps</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span>
+            <span class="n">cmd</span><span class="p">,</span>
+            <span class="n">stdin</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span>
+            <span class="n">stdout</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span>
+            <span class="n">stderr</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span>
+            <span class="n">shell</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="n">ps</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">input_data</span><span class="p">)</span>
+        <span class="n">ps</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">err</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">ps</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">ps</span><span class="o">.</span><span class="n">returncode</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span><span class="p">(</span><span class="n">ps</span><span class="o">.</span><span class="n">returncode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Error running MAFFT:</span><span class="se">\n</span><span class="s2">Stdout:</span><span class="se">\n</span><span class="si">{</span><span class="n">out</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">Stderr:</span><span class="se">\n</span><span class="si">{</span><span class="n">err</span><span class="si">}</span><span class="se">\n</span><span class="s2">Return code: </span><span class="si">{</span><span class="n">ps</span><span class="o">.</span><span class="n">returncode</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+<div class="viewcode-block" id="PyEvoMotionParser.parse_metadata">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.parser.PyEvoMotionParser.parse_metadata">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">parse_metadata</span><span class="p">(</span><span class="n">input_meta</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the metadata file into a ``pandas.DataFrame``.</span>
+
+<span class="sd">        :param input_meta: The path to the metadata file, in either ``.csv`` or ``.tsv`` format.</span>
+<span class="sd">        :type input_meta: str</span>
+<span class="sd">        :return: The metadata as a ``pd.DataFrame``. It must contain a ``date`` column. Other columns are optional.</span>
+<span class="sd">        :rtype: ``pd.DataFrame``</span>
+<span class="sd">        :raises ValueError: If the metadata file does not contain a ``date`` column.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">seps</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;csv&quot;</span><span class="p">:</span> <span class="s2">&quot;,&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;tsv&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span>
+        <span class="p">}</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">input_meta</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.csv&quot;</span><span class="p">):</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">input_meta</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">seps</span><span class="p">[</span><span class="s2">&quot;csv&quot;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">input_meta</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.tsv&quot;</span><span class="p">):</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">input_meta</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">seps</span><span class="p">[</span><span class="s2">&quot;tsv&quot;</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error reading metadata file: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="s2">&quot;date&quot;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Metadata file must contain a </span><span class="se">\&quot;</span><span class="s2">date</span><span class="se">\&quot;</span><span class="s2"> column&quot;</span><span class="p">)</span>
+        
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">)</span></div>
+</div>
+
+        
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Lucas Goiriz &amp; Guillermo Rodrigo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

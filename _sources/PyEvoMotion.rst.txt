@@ -1,0 +1,29 @@
+PyEvoMotion package
+===================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   PyEvoMotion.core
+
+Submodules
+----------
+
+PyEvoMotion.cli module
+----------------------
+
+.. automodule:: PyEvoMotion.cli
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: PyEvoMotion
+   :members:
+   :undoc-members:
+   :show-inheritance:
