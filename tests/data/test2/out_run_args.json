@@ -1,0 +1,13 @@
+{
+    "seqs": "tests/data/test2/test2.sequences.fasta",
+    "meta": "tests/data/test2/test2.metadata.tsv",
+    "out": "tests/data/test2/output/out",
+    "delta_t": "7D",
+    "date_range": "2019-12-01..",
+    "kind": "total",
+    "filter": {
+        "variant": "Primal"
+    },
+    "export_plots": true,
+    "length_filter": 25000
+}

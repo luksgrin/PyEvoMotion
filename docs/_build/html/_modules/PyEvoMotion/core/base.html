@@ -1,0 +1,537 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyEvoMotion.core.base &mdash; PyEvoMotion 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/_css/style_extension.css?v=9abbe321" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyEvoMotion
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">PyEvoMotion</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyEvoMotion</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">PyEvoMotion.core.base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for PyEvoMotion.core.base</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">r2_score</span>
+<span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">f</span> <span class="k">as</span> <span class="n">snedecor_f</span>
+<span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LinearRegression</span>
+
+
+<div class="viewcode-block" id="PyEvoMotionBase">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase">[docs]</a>
+<span class="k">class</span> <span class="nc">PyEvoMotionBase</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base class for the ``PyEvoMotion`` project.</span>
+
+<span class="sd">    This class contains no data and is meant to be used as a mixin (provides utility methods for the project). It is inherited by :class:`PyEvoMotion`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="PyEvoMotionBase.count_prefixes">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.count_prefixes">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">count_prefixes</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">mutations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Count the number of mutations that start with a specific prefix.</span>
+
+<span class="sd">        :param prefix: The prefix to count. It must be a single character.</span>
+<span class="sd">        :type prefix: str</span>
+<span class="sd">        :param mutations: The list of mutations where to count the prefix.</span>
+<span class="sd">        :type mutations: list[str]</span>
+<span class="sd">        :return: The number of mutations that start with the prefix.</span>
+<span class="sd">        :rtype: ``int``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span>
+            <span class="n">mutations</span>
+        <span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotionBase.mutation_length_modification">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.mutation_length_modification">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">mutation_length_modification</span><span class="p">(</span><span class="n">mutation</span><span class="p">:</span><span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the length modification induced by a mutation.</span>
+
+<span class="sd">        :param mutation: The mutation whose length modification to get.</span>
+<span class="sd">        :type mutation: str</span>
+<span class="sd">        :return: The length modification induced by the mutation.</span>
+<span class="sd">        :rtype: ``int``</span>
+<span class="sd">        :raises ValueError: If the mutation is not one of ``s``, ``i`` or ``d``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">mutation</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">):</span> <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mutation</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            
+        <span class="k">if</span> <span class="n">mutation</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;i&quot;</span><span class="p">):</span> <span class="k">return</span> <span class="n">_len</span>
+        <span class="k">elif</span> <span class="n">mutation</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">):</span> <span class="k">return</span> <span class="o">-</span><span class="n">_len</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mutation not recognized: </span><span class="si">{</span><span class="n">mutation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>        </div>
+
+
+<div class="viewcode-block" id="PyEvoMotionBase.date_grouper">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.date_grouper">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">date_grouper</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">DT</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">origin</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">groupby</span><span class="o">.</span><span class="n">generic</span><span class="o">.</span><span class="n">DataFrameGroupBy</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create grouped dataframe based on a ``datetime`` frequency.</span>
+
+<span class="sd">        :param df: The dataframe to group. It must have a ``date`` column.</span>
+<span class="sd">        :type df: pd.DataFrame</span>
+<span class="sd">        :param DT: The string datetime that will govern the grouping.</span>
+<span class="sd">        :type DT: str</span>
+<span class="sd">        :param origin: The string datetime that will be the origin of the grouping frequency.</span>
+<span class="sd">        :type origin: str</span>
+<span class="sd">        :return grouped: The dataset&#39;s corresponding pandas groupby object.</span>
+<span class="sd">        :rtype: ``pd.core.groupby.generic.DataFrameGroupBy``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span>
+            <span class="n">pd</span><span class="o">.</span><span class="n">Grouper</span><span class="p">(</span>
+                <span class="n">key</span><span class="o">=</span><span class="s2">&quot;date&quot;</span><span class="p">,</span>
+                <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">freq</span><span class="o">=</span><span class="n">DT</span><span class="p">,</span>
+                <span class="n">origin</span><span class="o">=</span><span class="n">origin</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_invoke_method</span><span class="p">(</span>
+        <span class="n">instance</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">any</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        General method to invoke another method from a class instance.</span>
+
+<span class="sd">        :param instance: the instance to invoke the method from.</span>
+<span class="sd">        :type instance: object</span>
+<span class="sd">        :param method: the method to invoke.</span>
+<span class="sd">        :type method: str</span>
+<span class="sd">        :param args: the arguments to pass to the method.</span>
+<span class="sd">        :type args: any</span>
+<span class="sd">        :param kwargs: the keyword arguments to pass to the method.</span>
+<span class="sd">        :type kwargs: dict[str, any]</span>
+<span class="sd">        :return: the result of the method.</span>
+<span class="sd">        :rtype: any</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">method</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> not found in </span><span class="si">{</span><span class="n">instance</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_remove_nan</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove NaN values from two pandas Series and return them as numpy arrays.</span>
+
+<span class="sd">        :param x: the first pandas Series.</span>
+<span class="sd">        :type x: pd.Series</span>
+<span class="sd">        :param y: the second pandas Series.</span>
+<span class="sd">        :type y: pd.Series</span>
+<span class="sd">        :return: a tuple with the two pandas Series without NaN values.</span>
+<span class="sd">        :rtype: tuple[np.ndarray,np.ndarray]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">})</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+<div class="viewcode-block" id="PyEvoMotionBase.linear_regression">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.linear_regression">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">linear_regression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform a linear regression on a set of data.</span>
+
+<span class="sd">        :param x: A numpy array of the features.</span>
+<span class="sd">        :type x: np.ndarray</span>
+<span class="sd">        :param y: A numpy array of the target.</span>
+<span class="sd">        :type y: np.ndarray</span>
+<span class="sd">        :param fit_intercept: Whether to fit the intercept. Default is ``True``.</span>
+<span class="sd">        :type fit_intercept: bool</span>
+<span class="sd">        :return: A dictionary containing:</span>
+
+<span class="sd">            * ``model``: A ``lambda`` function that computes predictions based on the fitted model.</span>
+<span class="sd">            * ``parameters``: A dictionary with the slope of the regression line.</span>
+<span class="sd">            * ``expression``: A string representation of the regression equation.</span>
+<span class="sd">            * ``r2``: The :math:`R^2` score of the regression.</span>
+<span class="sd">        :rtype: ``dict[str, any]``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">reg</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">(</span><span class="n">fit_intercept</span><span class="o">=</span><span class="n">fit_intercept</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fit_intercept</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span> <span class="o">+</span> <span class="n">reg</span><span class="o">.</span><span class="n">intercept_</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">intercept_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;mx + b&quot;</span>
+            <span class="p">}</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">x</span><span class="p">,</span>
+                <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="p">},</span>
+                <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;mx&quot;</span>
+            <span class="p">}</span>
+
+        <span class="n">model</span><span class="p">[</span><span class="s2">&quot;r2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">model</span></div>
+
+    
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_power_law</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">a</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">b</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Power law function.</span>
+
+<span class="sd">        :param x: the input.</span>
+<span class="sd">        :type x: np.ndarray | int | float</span>
+<span class="sd">        :param a: the coefficient.</span>
+<span class="sd">        :type a: int | float</span>
+<span class="sd">        :param b: the exponent.</span>
+<span class="sd">        :type b: int | float</span>
+<span class="sd">        :return: the result of the power law.</span>
+<span class="sd">        :rtype: np.ndarray | int | float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="n">a</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PyEvoMotionBase.power_law_fit">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.power_law_fit">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">power_law_fit</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform a power law fit on a set of data.</span>
+
+<span class="sd">        :param x: A numpy array of the features.</span>
+<span class="sd">        :type x: np.ndarray</span>
+<span class="sd">        :param y: A numpy array of the target.</span>
+<span class="sd">        :type y: np.ndarray</span>
+<span class="sd">        :return: A dictionary containing:</span>
+
+<span class="sd">            * ``model``: A ``lambda`` function that computes predictions based on the fitted model.</span>
+<span class="sd">            * ``parameters``: A dictionary with the parameters of the fitted power law.</span>
+<span class="sd">            * ``expression``: A string representation of the regression equation.</span>
+<span class="sd">            * ``r2``: The :math:`R^2` score of the regression.</span>
+<span class="sd">        :rtype: ``dict[str, any]``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_popt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_msg</span><span class="p">,</span> <span class="n">_ier</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span>
+                <span class="bp">cls</span><span class="o">.</span><span class="n">_power_law</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">full_output</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">_ier</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">_ier</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">_popt</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        
+        <span class="n">model</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;d*x^alpha&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;r2&quot;</span><span class="p">:</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_power_law</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">_popt</span><span class="p">))</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">model</span></div>
+
+        
+<div class="viewcode-block" id="PyEvoMotionBase.F_test">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.F_test">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">F_test</span><span class="p">(</span>
+        <span class="n">model1</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">any</span><span class="p">],</span>
+        <span class="n">model2</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">any</span><span class="p">],</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform an F-test between two models.</span>
+
+<span class="sd">        See https://en.wikipedia.org/wiki/F-test#Regression_problems for more details.</span>
+
+<span class="sd">        :param model1: The first model.</span>
+<span class="sd">        :type model1: dict[str, any]</span>
+<span class="sd">        :param model2: The second model.</span>
+<span class="sd">        :type model2: dict[str, any]</span>
+<span class="sd">        :param data: The data to test the models.</span>
+<span class="sd">        :type data: np.ndarray</span>
+<span class="sd">        :return: A tuple with the F-value and the p-value.</span>
+<span class="sd">        :rtype: ``tuple[float, float]``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="c1"># Note that p1 &lt; p2 always. Won&#39;t do an assertion because I&#39;m making sure elsewhere that the linear model does not have an intercept, i.e. it only has the slope</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model1</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">])</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model2</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">])</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">model1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">model1</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+        <span class="n">model2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">model2</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+
+        <span class="n">RS1</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">model1</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">RS2</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">model2</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="c1"># Mask the infinite and nan values</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">RS1</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">RS2</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">RS1</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">RS2</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Sum the residuals without the infinite values</span>
+        <span class="n">RSS1</span> <span class="o">=</span> <span class="n">RS1</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">RSS2</span> <span class="o">=</span> <span class="n">RS2</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="n">F</span> <span class="o">=</span> <span class="p">((</span><span class="n">RSS1</span> <span class="o">-</span> <span class="n">RSS2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">p2</span> <span class="o">-</span> <span class="n">p1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">RSS2</span><span class="o">/</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">p2</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">F</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">snedecor_f</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">p2</span> <span class="o">-</span> <span class="n">p1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="n">p2</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="PyEvoMotionBase.adjust_model">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.adjust_model">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">adjust_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjust a model to the data.</span>
+
+<span class="sd">        :param x: The features. It is a single pandas Series.</span>
+<span class="sd">        :type x: pd.Series</span>
+<span class="sd">        :param y: The target. It is a single pandas Series.</span>
+<span class="sd">        :type y: pd.Series</span>
+<span class="sd">        :param name: The name of the data. Default is ``None``.</span>
+<span class="sd">        :type name: str</span>
+<span class="sd">        :return: A dictionary with the model.   </span>
+<span class="sd">        :rtype: ``dict[str, any]``</span>
+<span class="sd">        :raises ValueError: If the dataset is empty or full of NaN values. This may occur if the grouped data contains only one entry per group, indicating that the variance cannot be computed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_remove_nan</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="c1"># Raises an error if the dataset is empty at this point</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_check_dataset_is_not_empty</span><span class="p">(</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
+                <span class="sa">f</span><span class="s2">&quot;Dataset length after filtering is: x: </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> elements; y: </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> elements. Perhaps NaN appeared certrain entries. Check if the grouped data contains only one entry per group, as this may cause NaN values when computing the variance. Also, consider widening the time window.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">model1</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">linear_regression</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># Not fitting the intercept because data is passed scaled to the minimum</span>
+        <span class="n">model2</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">power_law_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">F_test</span><span class="p">(</span><span class="n">model1</span><span class="p">,</span> <span class="n">model2</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mf">0.05</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">model2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">model1</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">model</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">model</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotionBase.plot_single_data_and_model">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.plot_single_data_and_model">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">plot_single_data_and_model</span><span class="p">(</span>
+        <span class="n">data_x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">indexes</span><span class="o">.</span><span class="n">range</span><span class="o">.</span><span class="n">RangeIndex</span><span class="p">,</span>
+        <span class="n">data_y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+        <span class="n">data_ylabel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="nb">callable</span><span class="p">,</span>
+        <span class="n">model_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">data_xlabel_units</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">ax</span><span class="p">:</span> <span class="nb">any</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Low level utility function to plot the data and a model.</span>
+
+<span class="sd">        :param data_x: The x-axis data.</span>
+<span class="sd">        :type data: pd.Series.index</span>
+<span class="sd">        :param data_y: The y-axis data.</span>
+<span class="sd">        :type data: pd.Series</span>
+<span class="sd">        :param data_ylabel: The ``ylabel`` of the data.</span>
+<span class="sd">        :type data_ylabel: str</span>
+<span class="sd">        :param model: The model to plot.</span>
+<span class="sd">        :type model: dict[str, any]</span>
+<span class="sd">        :param model_label: The label of the model.</span>
+<span class="sd">        :type model_label: str</span>
+<span class="sd">        :param data_xlabel_units: The units of the x-axis data.</span>
+<span class="sd">        :type data_xlabel_units: str</span>
+<span class="sd">        :param ax: The axis to plot.</span>
+<span class="sd">        :type ax: any</span>
+<span class="sd">        :param kwargs: Additional arguments to pass to the plot</span>
+<span class="sd">        :type kwargs: dict[str, any]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">line_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;linestyle&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;#1f77b4&quot;</span>
+        <span class="p">}</span>
+        <span class="n">point_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;#1f77b4&quot;</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">_flag</span><span class="p">,</span> <span class="n">_k</span> <span class="o">=</span> <span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">_k</span> <span class="ow">in</span> <span class="n">line_kwargs</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">_flag</span> <span class="o">==</span> <span class="s2">&quot;line&quot;</span><span class="p">):</span>
+                <span class="n">line_kwargs</span><span class="p">[</span><span class="n">_k</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">_k</span> <span class="ow">in</span> <span class="n">point_kwargs</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">_flag</span> <span class="o">==</span> <span class="s2">&quot;point&quot;</span><span class="p">):</span>
+                <span class="n">point_kwargs</span><span class="p">[</span><span class="n">_k</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+            <span class="n">data_x</span><span class="p">,</span>
+            <span class="n">data_y</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">point_kwargs</span>
+        <span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+            <span class="n">data_x</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">(</span><span class="n">data_x</span><span class="p">),</span>
+            <span class="n">label</span><span class="o">=</span><span class="n">model_label</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">line_kwargs</span>
+        <span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">data_ylabel</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;time (</span><span class="si">{</span><span class="n">data_xlabel_units</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_check_dataset_is_not_empty</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the dataset is not empty.</span>
+
+<span class="sd">        :param df: the dataset to check.</span>
+<span class="sd">        :type df: pd.DataFrame</span>
+<span class="sd">        :param msg: The message to raise if the dataset is empty.</span>
+<span class="sd">        :type msg: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;The dataset is empty at this point of the analysis.</span><span class="se">\n</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Lucas Goiriz &amp; Guillermo Rodrigo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,643 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyEvoMotion.core.core &mdash; PyEvoMotion 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/_css/style_extension.css?v=9abbe321" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            PyEvoMotion
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">PyEvoMotion</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">PyEvoMotion</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">PyEvoMotion.core.core</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for PyEvoMotion.core.core</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib.backends.backend_pdf</span> <span class="kn">import</span> <span class="n">PdfPages</span>
+
+<span class="kn">from</span> <span class="nn">.base</span> <span class="kn">import</span> <span class="n">PyEvoMotionBase</span>
+<span class="kn">from</span> <span class="nn">.parser</span> <span class="kn">import</span> <span class="n">PyEvoMotionParser</span>
+
+
+<div class="viewcode-block" id="PyEvoMotion">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion">[docs]</a>
+<span class="k">class</span> <span class="nc">PyEvoMotion</span><span class="p">(</span><span class="n">PyEvoMotionParser</span><span class="p">,</span> <span class="n">PyEvoMotionBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main class to analyze the data as intended by ``PyEvoMotion``. This class inherits from :class:`PyEvoMotionParser` and :class:`PyEvoMotionBase`. On construction, it calls :meth:`count_mutation_types`.</span>
+
+<span class="sd">    :param input_fasta: The path to the input ``.fasta`` file.</span>
+<span class="sd">    :type input_fasta: str</span>
+<span class="sd">    :param input_meta: The path to the input metadata file. It has to have a column named ``date``. Accepts ``.csv`` and ``.tsv`` files. Default is ``None``.</span>
+<span class="sd">    :type input_meta: str</span>
+<span class="sd">    :param dt: The string datetime interval that will govern the grouping for the statistics. Default is 7 days (``7D``).</span>
+<span class="sd">    :type dt: str</span>
+<span class="sd">    :param filters: The filters to apply to the data. Default is ``None``.</span>
+<span class="sd">    :type filters: dict[str, list[str] | str] | None</span>
+<span class="sd">    :param positions: The positions to filter by. Default is ``None``.</span>
+<span class="sd">    :type positions: tuple[int] | None</span>
+<span class="sd">    :param date_range: The date range to filter by. Default is ``None``.</span>
+<span class="sd">    :type date_range: tuple[str] | None</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    -----------</span>
+<span class="sd">    data: ``pd.DataFrame``</span>
+<span class="sd">        The parsed data from the input files.</span>
+<span class="sd">    reference: ``str``</span>
+<span class="sd">        The reference sequence.</span>
+<span class="sd">    _MUTATION_TYPES: ``list[str]``</span>
+<span class="sd">        The types of mutations that can be found in the data. Namely ``substitutions`` and ``indels``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_MUTATION_TYPES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;substitutions&quot;</span><span class="p">,</span> <span class="s2">&quot;indels&quot;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_fasta</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">input_meta</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">dt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;7D&quot;</span><span class="p">,</span>
+        <span class="n">filters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">positions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">date_range</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the class.</span>
+
+<span class="sd">        It invokes the ``__init__()`` method of ``PyEvoMotionParser`` and ``count_mutation_types``.</span>
+
+<span class="sd">        :param input_fasta: The path to the input fasta file.</span>
+<span class="sd">        :type input_fasta: str</span>
+<span class="sd">        :param input_meta: The path to the input metadata file.</span>
+<span class="sd">        :type input_meta: str</span>
+<span class="sd">        :param dt: The string datetime interval that will govern the grouping for the statistics. Default is 7 days.</span>
+<span class="sd">        :type dt: str</span>
+<span class="sd">        :param filters: The filters to apply to the data. Default is None.</span>
+<span class="sd">        :type filters: dict[str, list[str] | str] | None</span>
+<span class="sd">        :param positions: The positions to filter by. Default is None.</span>
+<span class="sd">        :type positions: tuple[int] | None</span>
+<span class="sd">        :param date_range: The date range to filter by. Default is None.</span>
+<span class="sd">        :type date_range: tuple[str] | None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>
+
+        <span class="c1"># Parse the input fasta and metadata files</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">input_fasta</span><span class="p">,</span>
+            <span class="n">input_meta</span><span class="p">,</span>
+            <span class="n">filters</span> <span class="k">if</span> <span class="n">filters</span> <span class="k">else</span> <span class="p">{},</span>
+            <span class="n">positions</span> <span class="k">if</span> <span class="n">positions</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">date_range</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_dataset_is_not_empty</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+            <span class="s2">&quot;Perhaps there were no entries or the filters provided (if any) are too restrictive.&quot;</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Set the origin of the data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;date&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">date_range</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="n">date_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">date_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">origin</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_mutation_types</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PyEvoMotion.plot_results">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.plot_results">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">plot_results</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+        <span class="n">stats</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">regs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]],</span>
+        <span class="n">data_xlabel_units</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the results of the analysis.</span>
+
+<span class="sd">        :param stats: The statistics of the data. The first column has to be the date, the second column has to be the mean and the third column has to be the variance.</span>
+<span class="sd">        :type stats: pd.DataFrame</span>
+<span class="sd">        :param regs: The regression models.</span>
+<span class="sd">        :type regs: dict[str, dict[str, any]]</span>
+<span class="sd">        :param data_xlabel: The data ``xlabel`` units.</span>
+<span class="sd">        :type data_xlabel: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+
+        <span class="c1"># Mean</span>
+        <span class="n">_model</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">v</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">regs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">_mean_data</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="n">stats</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">plot_single_data_and_model</span><span class="p">(</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">_mean_data</span><span class="p">,</span>
+            <span class="n">_mean_data</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">_model</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">],</span>
+            <span class="sa">r</span><span class="s2">&quot;$r^2$: &quot;</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_model</span><span class="p">[</span><span class="s1">&#39;r2&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">data_xlabel_units</span><span class="p">,</span>
+            <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Variance</span>
+        <span class="n">_model</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">v</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">regs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;scaled var&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">_variance_data</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="n">stats</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">plot_single_data_and_model</span><span class="p">(</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">_variance_data</span><span class="p">,</span>
+            <span class="n">_variance_data</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">_model</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">],</span>
+            <span class="sa">r</span><span class="s2">&quot;$r^2$: &quot;</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_model</span><span class="p">[</span><span class="s1">&#39;r2&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">data_xlabel_units</span><span class="p">,</span>
+            <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Dispersion index</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">plot_single_data_and_model</span><span class="p">(</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">_mean_data</span><span class="o">/</span><span class="n">_variance_data</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;dispersion index of </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_mean_data</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">:])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+            <span class="s2">&quot;Poissonian regime&quot;</span><span class="p">,</span>
+            <span class="n">data_xlabel_units</span><span class="p">,</span>
+            <span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="n">line_linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+            <span class="n">line_color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotion.export_plot_results">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.export_plot_results">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">export_plot_results</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+        <span class="n">stats</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+        <span class="n">regs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]],</span>
+        <span class="n">data_xlabel_units</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">output_ptr</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Export the results of the analysis to a ``.pdf`` file.</span>
+
+<span class="sd">        :param stats: The statistics of the data.</span>
+<span class="sd">        :type stats: pd.DataFrame</span>
+<span class="sd">        :param regs: The regression models.</span>
+<span class="sd">        :type regs: dict[str, dict[str, any]]</span>
+<span class="sd">        :param data_xlabel_units: The data ``xlabel`` units for the plot.</span>
+<span class="sd">        :type data_xlabel_units: str</span>
+<span class="sd">        :param output_ptr: The output ``.pdf`` file. If ``None``, it will create a new ``.pdf`` file.</span>
+<span class="sd">        :type output: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">output_ptr</span> <span class="k">if</span> <span class="n">output_ptr</span> <span class="k">else</span> <span class="n">PdfPages</span><span class="p">(</span><span class="s2">&quot;output_plots.pdf&quot;</span><span class="p">)</span>
+            
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="c1"># Mean</span>
+        <span class="n">_model</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">v</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">regs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">_mean_data</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="n">stats</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">plot_single_data_and_model</span><span class="p">(</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">_mean_data</span><span class="p">,</span>
+            <span class="n">_mean_data</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="n">_model</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">],</span>
+            <span class="sa">r</span><span class="s2">&quot;$r^2$: &quot;</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_model</span><span class="p">[</span><span class="s1">&#39;r2&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">data_xlabel_units</span><span class="p">,</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">_mean_data</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">pdf</span><span class="o">.</span><span class="n">savefig</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="c1"># Variance</span>
+        <span class="n">_model</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="n">v</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">regs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;scaled var&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">_variance_data</span> <span class="o">=</span> <span class="n">stats</span><span class="p">[</span><span class="n">stats</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">plot_single_data_and_model</span><span class="p">(</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">_variance_data</span><span class="p">,</span>
+            <span class="n">_variance_data</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_model</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">](</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">_variance_data</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="c1"># Adjust the model to the original variance</span>
+            <span class="sa">r</span><span class="s2">&quot;$r^2$: &quot;</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_model</span><span class="p">[</span><span class="s1">&#39;r2&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">data_xlabel_units</span><span class="p">,</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">_variance_data</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">pdf</span><span class="o">.</span><span class="n">savefig</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="c1"># Dispersion index</span>
+        <span class="n">_name</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_mean_data</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">plot_single_data_and_model</span><span class="p">(</span>
+            <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+            <span class="n">_mean_data</span><span class="o">/</span><span class="n">_variance_data</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;dispersion index of </span><span class="si">{</span><span class="n">_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+            <span class="s2">&quot;Poissonian regime&quot;</span><span class="p">,</span>
+            <span class="n">data_xlabel_units</span><span class="p">,</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">(),</span>
+            <span class="n">line_linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+            <span class="n">line_color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Dispersion index of </span><span class="si">{</span><span class="n">_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">pdf</span><span class="o">.</span><span class="n">savefig</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotion.count_mutation_types">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.count_mutation_types">[docs]</a>
+    <span class="k">def</span> <span class="nf">count_mutation_types</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Count the number of substitutions, insertions and deletions in the data.</span>
+<span class="sd">        </span>
+<span class="sd">        It updates the ``data`` attribute by adding the columns ``number of substitutions``, ``number of indels`` and ``number of mutations``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MUTATION_TYPES</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;insertions&quot;</span><span class="p">,</span> <span class="s2">&quot;deletions&quot;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;number of </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mutation instructions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">count_prefixes</span><span class="p">(</span><span class="n">_type</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Set indels together just in case</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;number of indels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;number of insertions&quot;</span><span class="p">]</span>
+            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;number of deletions&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;number of mutations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mutation instructions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="nb">len</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotion.get_lengths">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.get_lengths">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_lengths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the lengths of the sequences in the dataset.</span>
+
+<span class="sd">        :return: The lengths of the sequences.</span>
+<span class="sd">        :rtype: ``pd.Series``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mutation instructions&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span>
+                    <span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mutation_length_modification</span><span class="p">(</span><span class="n">y</span><span class="p">),</span>
+                    <span class="n">x</span>
+                <span class="p">))</span>
+            <span class="p">)</span>
+            <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reference</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="PyEvoMotion.length_filter">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.length_filter">[docs]</a>
+    <span class="k">def</span> <span class="nf">length_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">how</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s2">&quot;gt&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filter the data by sequence length.</span>
+
+<span class="sd">        It updates the ``data`` attribute by filtering the data by the sequence length.</span>
+
+<span class="sd">        :param length: The length to filter by.</span>
+<span class="sd">        :type length: int</span>
+<span class="sd">        :param how: The filter condition. It can be ``gt`` (greater than), ``lt`` (less than) or ``eq`` (equal to).</span>
+<span class="sd">        :type how: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">how</span> <span class="o">==</span> <span class="s2">&quot;gt&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_lengths</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">length</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">how</span> <span class="o">==</span> <span class="s2">&quot;lt&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_lengths</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">length</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">how</span> <span class="o">==</span> <span class="s2">&quot;eq&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_lengths</span><span class="p">()</span> <span class="o">==</span> <span class="n">length</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Filter </span><span class="se">\&quot;</span><span class="si">{</span><span class="n">how</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2"> not recognized&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="PyEvoMotion.n_filter">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.n_filter">[docs]</a>
+    <span class="k">def</span> <span class="nf">n_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">how</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lt&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Filter the data by the number of ``N`` in the sequence.</span>
+
+<span class="sd">        It updates the ``data`` attribute by filtering the data by the number of ``N`` in the sequence.</span>
+<span class="sd">        </span>
+<span class="sd">        :param threshold: The threshold to filter by. Must be between 0 and 1. Default is 0.01.</span>
+<span class="sd">        :type threshold: float | int</span>
+<span class="sd">        :param how: The filter condition. It can be ``gt`` (greater than), ``lt`` (less than) or ``eq`` (equal to).</span>
+<span class="sd">        :type how: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">threshold</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Threshold must be between 0 and 1&quot;</span><span class="p">)</span>
+
+        <span class="n">N_freq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;N count&quot;</span><span class="p">]</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">get_lengths</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">how</span> <span class="o">==</span> <span class="s2">&quot;gt&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">N_freq</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">how</span> <span class="o">==</span> <span class="s2">&quot;lt&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">N_freq</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">how</span> <span class="o">==</span> <span class="s2">&quot;eq&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">N_freq</span> <span class="o">==</span> <span class="n">threshold</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Filter </span><span class="se">\&quot;</span><span class="si">{</span><span class="n">how</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2"> not recognized&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+        
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_mutation_type_switch</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">mutation_kind</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Switch the mutation kind to the corresponding list of mutation types.</span>
+
+<span class="sd">        This is used to subset the analysis to the desired mutation kind.</span>
+
+<span class="sd">        :param mutation_kind: the kind of mutation to compute the statistics for. Has to be one of &quot;all&quot;, &quot;total&quot;, &quot;substitutions&quot; or &quot;indels&quot;.</span>
+<span class="sd">        :type mutation_kind: str</span>
+<span class="sd">        :return: the list of mutation types.</span>
+<span class="sd">        :rtype: list[str]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">cases</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;all&quot;</span><span class="p">:</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MUTATION_TYPES</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;mutations&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;mutations&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;substitutions&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">_MUTATION_TYPES</span><span class="p">[</span><span class="mi">0</span><span class="p">]],</span>
+            <span class="s2">&quot;indels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">_MUTATION_TYPES</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="p">}</span>
+
+        <span class="n">choice</span> <span class="o">=</span> <span class="n">cases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mutation_kind</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">choice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Mutation kind </span><span class="se">\&quot;</span><span class="si">{</span><span class="n">mutation_kind</span><span class="si">}</span><span class="se">\&quot;</span><span class="s1"> not recognized. It has to be one of </span><span class="si">{</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cases</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">choice</span>
+
+<div class="viewcode-block" id="PyEvoMotion.compute_stats">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.compute_stats">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+        <span class="n">DT</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">origin</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">n_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mutation_kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute the length, mean and variance of the data.</span>
+
+<span class="sd">        It computes the mean and variance of the data for the specified mutation kind (or kinds) in the specified datetime interval and origin.</span>
+
+<span class="sd">        :param DT: The string datetime interval that will govern the grouping.</span>
+<span class="sd">        :type DT: str</span>
+<span class="sd">        :param origin: The string datetime that will be the origin of the grouping.</span>
+<span class="sd">        :type origin: str</span>
+<span class="sd">        :param n_threshold: Minimum number of sequences required in a time interval to compute statistics.</span>
+<span class="sd">        :type n_threshold: int | None</span>
+<span class="sd">        :param mutation_kind: The kind of mutation to compute the statistics for. Has to be one of ``all``, ``total``, ``substitutions``, ``insertions``, ``deletions`` or ``indels``. Default is ``all``.</span>
+<span class="sd">        :return: The statistics of the data.</span>
+<span class="sd">        :rtype: ``pd.DataFrame``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">grouped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_grouper</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">DT</span><span class="p">,</span> <span class="n">origin</span><span class="p">)</span>
+
+        <span class="c1"># Only keep weeks where the number of observations is greater than the threshold</span>
+        <span class="k">if</span> <span class="n">n_threshold</span><span class="p">:</span>
+            <span class="n">grouped</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_grouper</span><span class="p">(</span>
+                <span class="n">grouped</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">n_threshold</span><span class="p">),</span>
+                <span class="n">DT</span><span class="p">,</span>
+                <span class="n">origin</span>
+            <span class="p">)</span>
+
+        <span class="n">levels</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;number of </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mutation_type_switch</span><span class="p">(</span><span class="n">mutation_kind</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_invoke_method</span><span class="p">(</span><span class="n">grouped</span><span class="p">[</span><span class="n">levels</span><span class="p">],</span> <span class="n">method</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">rename</span><span class="p">(</span>
+                    <span class="n">columns</span><span class="o">=</span><span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="n">method</span> <span class="o">!=</span> <span class="s2">&quot;size&quot;</span> <span class="k">else</span> <span class="s2">&quot;size&quot;</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span> <span class="s2">&quot;var&quot;</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;date&#39;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="PyEvoMotion.analysis">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.core.PyEvoMotion.analysis">[docs]</a>
+    <span class="k">def</span> <span class="nf">analysis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+        <span class="n">length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">n_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">show</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">mutation_kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;all&quot;</span><span class="p">,</span>
+        <span class="n">export_plots_filename</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">any</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the global analysis of the data.</span>
+
+<span class="sd">        It computes the statistics and the regression models for the mean and variance of the data.</span>
+<span class="sd">        </span>
+<span class="sd">        :param length: The length to filter by.</span>
+<span class="sd">        :type length: int</span>
+<span class="sd">        :param n_threshold: Minimum number of sequences required in a time interval to compute statistics.</span>
+<span class="sd">        :param show: Whether to show the plots or not. Default is False.</span>
+<span class="sd">        :type show: bool</span>
+<span class="sd">        :param mutation_kind: The kind of mutation to compute the statistics for. Has to be one of ``all``, ``total``, ``substitutions`` or ``indels``. Default is ``all``.</span>
+<span class="sd">        :type mutation_kind: str</span>
+<span class="sd">        :param export_plots: Filename to export the plots. Default is None and does not export the plots.</span>
+<span class="sd">        :type export_plots: str | None</span>
+<span class="sd">        :return: The statistics and the regression models.</span>
+<span class="sd">        :rtype: ``tuple[pd.DataFrame, dict[str, dict[str, any]]]``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Apply filters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_filter</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length_filter</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="n">length</span><span class="p">)</span>
+
+        <span class="c1"># Compute the statistics for the specified mutation kinds</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_stats</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span>
+            <span class="n">n_threshold</span><span class="p">,</span>
+            <span class="n">mutation_kind</span>
+        <span class="p">)</span>
+
+
+        <span class="n">regs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># For each column in the statistics (except the date and the size), compute the corresponding regression model</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;mean&quot;</span><span class="p">):</span>
+                <span class="n">_single_regression</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> per </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> model&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_regression</span><span class="p">(</span>
+                        <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_remove_nan</span><span class="p">(</span>
+                            <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="c1"># Regression is given by the index, so in time, it is the same as multiplying by dt days</span>
+                            <span class="n">stats</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">}</span>
+            <span class="k">elif</span> <span class="n">col</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;var&quot;</span><span class="p">):</span>
+                <span class="n">_single_regression</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_model</span><span class="p">(</span>
+                    <span class="n">stats</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+                    <span class="n">stats</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">-</span> <span class="n">stats</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;scaled </span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> per </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> model&quot;</span>
+                <span class="p">)</span>
+            <span class="c1"># Save the regression model</span>
+            <span class="n">regs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_single_regression</span><span class="p">)</span>
+
+        <span class="c1"># Sets of mutation types used in the analysis</span>
+        <span class="n">_sets</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">({</span>
+            <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">stats</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">})</span>
+
+        <span class="c1"># Plot the results</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="c1"># For each set of mutation types</span>
+            <span class="k">for</span> <span class="n">_type</span> <span class="ow">in</span> <span class="n">_sets</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">plot_results</span><span class="p">(</span>
+                    <span class="n">stats</span><span class="p">[[</span><span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mean </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;var </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]],</span>
+                    <span class="p">{</span>
+                        <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">regs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;mean </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2"> per </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> model&quot;</span><span class="p">,</span>
+                            <span class="sa">f</span><span class="s2">&quot;scaled var </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2"> per </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> model&quot;</span>
+                        <span class="p">)</span>
+                    <span class="p">},</span>
+                    <span class="sa">f</span><span class="s2">&quot;in steps of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> since </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        <span class="c1"># Export the plots</span>
+        <span class="k">if</span> <span class="n">export_plots_filename</span><span class="p">:</span>
+            <span class="c1"># Open pdf file pointer</span>
+            <span class="n">pdf</span> <span class="o">=</span> <span class="n">PdfPages</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">export_plots_filename</span><span class="si">}</span><span class="s2">.pdf&quot;</span><span class="p">)</span>
+            <span class="c1"># For each set of mutation types save the plots</span>
+            <span class="k">for</span> <span class="n">_type</span> <span class="ow">in</span> <span class="n">_sets</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">export_plot_results</span><span class="p">(</span>
+                    <span class="n">stats</span><span class="p">[[</span><span class="s2">&quot;date&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;mean </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;var </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]],</span>
+                    <span class="p">{</span>
+                        <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+                        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">regs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;mean </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2"> per </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> model&quot;</span><span class="p">,</span>
+                            <span class="sa">f</span><span class="s2">&quot;scaled var </span><span class="si">{</span><span class="n">_type</span><span class="si">}</span><span class="s2"> per </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> model&quot;</span>
+                        <span class="p">)</span>
+                    <span class="p">},</span>
+                    <span class="sa">f</span><span class="s2">&quot;in steps of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="si">}</span><span class="s2"> since </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">origin</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">pdf</span>
+                <span class="p">)</span>
+            <span class="c1"># Close pdf file pointer</span>
+            <span class="n">pdf</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">stats</span><span class="p">,</span> <span class="n">regs</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Lucas Goiriz &amp; Guillermo Rodrigo.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

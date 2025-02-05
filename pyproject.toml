@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "PyEvoMotion"
+version = "0.1.0"
+description = ""
+authors = ["Lucas Goiriz <lucas.goiriz@csic.es>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+pytest = "^8.2.2"
+bio = "^1.7.1"
+pandas = "^2.2.2"
+scikit-learn = "^1.5.1"
+matplotlib = "^3.9.1"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^8.0.2"
+sphinx-markdown-builder = "^0.6.6"
+sphinx-rtd-theme = "^3.0.2"
+sphinxcontrib-bibtex = "^2.6.3"
+
+[tool.poetry.scripts]
+PyEvoMotion = "PyEvoMotion.cli:_main"
+
+[build-system]
+requires = ["setuptools >= 40.9.0"]
+build-backend = "setuptools.build_meta"
