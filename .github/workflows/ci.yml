@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ revision ]
+  pull_request:
+    branches: [ revision ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Install MAFFT locally
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git build-essential
+          bash ./share/mafft_install.sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          export PATH="$HOME/.local/bin:$PATH"
+          which mafft
+          mafft --version
+
+      - name: Install dependencies with Poetry
+        run: |
+          poetry install --with docs
+
+      - name: Cache test data
+        id: cache-data
+        uses: actions/cache@v3
+        with:
+          path: tests/data/test3/
+          key: test-data-v1
+
+      - name: Skip data prep if cache is hit
+        if: steps.cache-data.outputs.cache-hit == 'true'
+        run: echo "Test data is cached. Skipping download."
+
+      - name: Download and extract test data (if needed)
+        if: steps.cache-data.outputs.cache-hit != 'true'
+        run: |
+          echo "Test data not found in cache — downloading..."
+          poetry run python -c "import tests.helpers.test_UK_USA_dataset_helpers as t; t.download_data_zip(); t.extract_data_zip();"
+
+      - name: Run tests with pytest
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          poetry run pytest -sv

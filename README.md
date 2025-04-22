@@ -4,28 +4,20 @@ A software to assess the evolution dynamics of a set of related DNA sequences.
 
 _(See [Goiriz L, et al.](http://doi.org/10.1073/pnas.2303578120))_
 
-It requires `mafft` to be installed in the system.
-
-Check the [documentation](docs/_build/markdown/index.md) for more details.
-
 ## Installation
 
 > **Note:**
-> `PyEvoMotion` uses [mafft](https://mafft.cbrc.jp/alignment/software/) to do the sequence alignment. If it’s not available in your system, the installation script will install it locally.
+> `PyEvoMotion` uses [mafft](https://mafft.cbrc.jp/alignment/software/) to do the sequence alignment. If it’s not available in your system, on the the first run of `PyEvoMotion`, it will ask to install it locally.
 > 
 > If so, ensure to restart your shell session or run `source ~/.bashrc` to update the PATH environment variable, so that the `mafft` executable is available in your shell.
 >
-> To install `PyEvoMotion` you must clone the repository and run the installation script:
+> To install `PyEvoMotion` you may clone the repository and run `pip install`, or install it from PyPI:
 
 ```bash
-git clone https://github.com/luksgrin/PyEvoMotion
-cd PyEvoMotion
-python3 -m pip install .
+pip install PyEvoMotion
 ```
 
-This will install the package and its dependencies.
-
-To check if the installation was successful, you can run the following command:
+This will install the package and its dependencies _(but not the tests nor the test data)_. To check if the installation was successful, you can run the following command:
 
 ```bash
 PyEvoMotion
@@ -85,9 +77,91 @@ Error: the following arguments are required: seqs, meta, out
 
 ## Tests
 
-This package has been developed using `pytest` for testing. To run the tests, you can use the following command:
+This package has been developed using `pytest` for testing. To run the tests, you may install PyEvoMotion from the `sdist` archive, decompress it, install it and run the tests:
 
 ```bash
-python3 -m pytest
+pip download --no-deps --no-binary :all: PyEvoMotion
+tar -xvzf pyevomotion-*.tar.gz
+cd pyevomotion-*/
+pip install .
+PyEvoMotion # To trigger mafft installation. Ensure afterwards that mafft is available in your PATH.
+pytest
 ```
 
+> [!WARNING]
+> The first time the tests are run, they will automatically download the test data from `https://sourceforge.net/projects/pyevomotion/files/test_data.zip/download` and extract it in the appropriate directory.
+>
+> Given the size of the test data, this may take a while.
+
+
+## Docker
+
+A Docker image containing a virtual environment with `PyEvoMotion` pre-installed, its dependencies, the test data is available at `ghcr.io/luksgrin/pyevomotion:latest` and the manuscript's original figure script is available at `ghcr.io/luksgrin/pyevomotion-fig:latest`.
+
+Pull the image from by running:
+
+```bash
+docker pull ghcr.io/luksgrin/pyevomotion:latest
+```
+
+Alternatively, to build the main image, run:
+
+```bash
+docker build -t ghcr.io/luksgrin/pyevomotion:latest -f docker/Dockerfile
+```
+
+### Running the container
+
+To start an interactive container:
+
+```bash
+docker run -it ghcr.io/luksgrin/pyevomotion:latest
+```
+
+This will open a prompt that displays a welcome message and allows you to start using `PyEvoMotion` right away.
+
+### Included data
+
+The image includes (heavy) input files (FASTA and metadata) in:
+
+```bash
+/home/pyevomotion/pyevomotion-*/tests/data/test3
+```
+
+which are used by the test suite (and are automatically downloaded and extracted if not present, thereby using the containerized version is more convenient).
+
+Also, the source script for figure generation (along with the pre-generated results of running `PyEvoMotion`) is already available under:
+
+```bash
+/home/pyevomotion/pyevomotion-*/share
+```
+
+Do note that if all the contents within
+
+```bash
+/home/pyevomotion/pyevomotion-*/share
+```
+
+are deleted except for the `manuscript_figure.py` script, it is still possible to generate the figure (although it will take much longer since the dataset's stats must be computed by `PyEvoMotion`).
+
+### Running tests
+
+Once inside the container, run:
+
+```bash
+cd pyevomotion-*
+pytest
+```
+
+This will execute the test suite included with the source.
+
+### Reproducing the Figure from the original manuscript
+
+To reproduce the figure from the original manuscript, run:
+
+```bash
+cd pyevomotion-*
+python share/manuscript_figure.py export
+```
+
+The figure will be saved in the `share` directory. Font warnings may appear — they are safe to ignore and do not affect the scientific content of the figure, only the styling.

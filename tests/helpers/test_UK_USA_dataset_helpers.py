@@ -14,7 +14,7 @@ def check_data_exists() -> bool:
 
     _files = [
         "test3UK.fasta",
-        "testUSA.fasta",
+        "test3USA.fasta",
         "test3UK.tsv",
         "test3USA.tsv"
     ]
@@ -102,9 +102,8 @@ def generate_sampled_df(
             file_path,
             sep="\t",
             index_col=0,
-            parse_dates=["Date"],
+            parse_dates=["date"],
         )
-        .rename(columns={"ID": "id", "Date": "date"})
     )
     _origin = df["date"].min()
 
@@ -134,9 +133,8 @@ def generate_figure_df(
             file_path,
             sep="\t",
             index_col=0,
-            parse_dates=["Date"],
+            parse_dates=["date"],
         )
-        .rename(columns={"ID": "id", "Date": "date"})
     )
 
     _filename = f"tests/data/test3/output/{date}/sample_{os.path.basename(file_path).split(".")[0]}.tsv"

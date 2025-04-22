@@ -383,8 +383,16 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
 
         # Only keep weeks where the number of observations is greater than the threshold
         if n_threshold:
+
+            _filtered = grouped.filter(lambda x: len(x) >= n_threshold)
+
+            if len(_filtered) == 0:
+                raise ValueError(
+                    f"No groups with at least {n_threshold} observations. Consider lowering the threshold."
+                )
+
             grouped = self.date_grouper(
-                grouped.filter(lambda x: len(x) >= n_threshold),
+                _filtered,
                 DT,
                 origin
             )

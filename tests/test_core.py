@@ -1,4 +1,6 @@
 import pytest
+from os import makedirs
+
 from PyEvoMotion import PyEvoMotion
 
 # Setup
@@ -16,6 +18,10 @@ def test_parse_file(setup):
     # Create an instance
     instance = setup
 
+    # Create the output directory
+    makedirs("tests/data/test1/output", exist_ok=True)
+
+    # Save the data
     instance.data.to_csv("tests/data/test1/output/test1.data.tsv", sep="\t", index=False)
 
     # Assert True if no errors are raised

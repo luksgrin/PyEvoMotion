@@ -1,0 +1,16 @@
+# Upload general data
+FROM scratch
+ADD tests/data/test3/test3UK.fasta /opt/data/.
+ADD tests/data/test3/test3USA.fasta /opt/data/.
+ADD tests/data/test3/test3UK.tsv /opt/data/.
+ADD tests/data/test3/test3USA.tsv /opt/data/.
+
+# Upload data for easier fig creation
+ADD share/figUK.tsv /opt/figdata/.
+ADD share/figUSA.tsv /opt/figdata/.
+ADD share/figUK_regression_results.json /opt/figdata/.
+ADD share/figUSA_regression_results.json /opt/figdata/.
+ADD share/figUK_stats.tsv /opt/figdata/.
+ADD share/figUSA_stats.tsv /opt/figdata/.
+ADD share/figdataUK.tsv /opt/figdata/.
+ADD share/figdataUSA.tsv /opt/figdata/.

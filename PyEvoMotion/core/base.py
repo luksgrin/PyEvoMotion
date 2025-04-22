@@ -306,11 +306,11 @@ class PyEvoMotionBase():
 
         x,y = cls._remove_nan(x, y)
 
-        # Raises an error if the dataset is empty at this point
-        if (x.size < 1) or (y.size < 1):
+        # Raises an error if the dataset is (almost) empty at this point
+        if (x.size <= 1) or (y.size <= 1):
             cls._check_dataset_is_not_empty(
                 pd.DataFrame(),
-                f"Dataset length after filtering is: x: {x.size} elements; y: {y.size} elements. Perhaps NaN appeared certrain entries. Check if the grouped data contains only one entry per group, as this may cause NaN values when computing the variance. Also, consider widening the time window."
+                f"Dataset length after filtering is: x: {x.size} elements; y: {y.size} elements. In particular:\n\nx: {x}\ny: {y}\n\nPerhaps NaN appeared for certain entries. Check if the grouped data contains only one entry per group, as this may cause NaN values when computing the variance. Also, consider widening the time window."
             )
 
         model1 = cls.linear_regression(x, y, fit_intercept=False) # Not fitting the intercept because data is passed scaled to the minimum
@@ -402,5 +402,5 @@ class PyEvoMotionBase():
 
         if df.empty:
             raise ValueError(
-                f"The dataset is empty at this point of the analysis.\n{msg}"
+                f"The dataset is (almost) empty at this point of the analysis.\n{msg}"
             )

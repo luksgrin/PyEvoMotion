@@ -11,6 +11,7 @@ import argparse
 from datetime import datetime
 
 from .core.core import PyEvoMotion
+from .utils import check_and_install_mafft
 
 PACKAGE_DESCRIPTION = "PyEvoMotion"
 BANNER = r"""
@@ -364,6 +365,7 @@ def _simple_serializer(k: str, v: any) -> any:
     return v
 
 def _main():
+    check_and_install_mafft()
     """
     Command line interface for :class:`PyEvoMotion`.
 

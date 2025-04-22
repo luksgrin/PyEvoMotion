@@ -15,7 +15,7 @@ def test_parse_file(setup):
 
     It's some sort of fuzz-test as it's not deterministic.
 
-    Update: set the assert to True because one can not always recover the original sequence due to loss of information when it comes to handling Ns.
+    Update: set the assert to True because one can not always recover the original sequence due to loss of information when it comes to handling Ns. This test is kept for the sake of completeness.
     """
 
     # Create an instance

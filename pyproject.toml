@@ -1,9 +1,25 @@
 [tool.poetry]
 name = "PyEvoMotion"
 version = "0.1.0"
-description = ""
+description = "Evolutionary motion analysis tool"
 authors = ["Lucas Goiriz <lucas.goiriz@csic.es>"]
 readme = "README.md"
+packages = [{ include = "PyEvoMotion" }]
+keywords = ["evolution", "anomalous diffusion", "bioinformatics"]
+include = [
+    { path = "share", format = "sdist" },
+    { path = "share", format = "wheel" },
+    { path = "tests/__init__.py", format = "sdist" },
+    { path = "tests/helpers", format = "sdist" },
+    { path = "tests/test*", format = "sdist" },
+    { path = "tests/data/test1", format = "sdist" },
+    { path = "tests/data/test2", format = "sdist" },
+    { path = "tests/data/test3/ids_sampled_for_figure.json", format = "sdist" },
+]
+
+[tool.poetry.urls]
+"Homepage" = "https://luksgrin.github.io/PyEvoMotion/"
+"Repository" = "https://github.com/luksgrin/PyEvoMotion/"
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"
@@ -12,6 +28,7 @@ bio = "^1.7.1"
 pandas = "^2.2.2"
 scikit-learn = "^1.5.1"
 matplotlib = "^3.9.1"
+twine = "^6.1.0"
 
 [tool.poetry.group.docs]
 optional = true
@@ -26,5 +43,5 @@ sphinxcontrib-bibtex = "^2.6.3"
 PyEvoMotion = "PyEvoMotion.cli:_main"
 
 [build-system]
-requires = ["setuptools >= 40.9.0"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
