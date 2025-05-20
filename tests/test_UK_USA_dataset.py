@@ -37,7 +37,6 @@ def run_dataset_test(setup, meta_file_path, seq_file_path, output_prefix):
             _filename,
             f"tests/data/test3/output/{_date}/{output_prefix}",
             "-k", "total",
-            "-n", "5",
             "-dt", _dt,
             "-dr", "2020-10-01..2021-08-01",
             "-ep",
@@ -49,14 +48,14 @@ def run_dataset_test(setup, meta_file_path, seq_file_path, output_prefix):
     )
 
     # Check for known errors that happen when random sampling is defficient
-    if ("ValueError: No groups with at least 5 observations" in result.stderr) or ("ValueError: The dataset is (almost) empty at this point of the analysis." in result.stderr):
+    if ("ValueError: No groups with at least 2 observations" in result.stderr) or ("ValueError: The dataset is (almost) empty at this point of the analysis." in result.stderr):
         pytest.skip("Skipped due to insufficient observations in random input. Consider re-running this particular test.")
 
     assert os.path.exists(f"tests/data/test3/output/{_date}/{output_prefix}_plots.pdf")
 
-def run_fig_test(setup, set, meta_file_path, seq_file_path, output_prefix):
+def run_fig_test(setup, set, meta_file_path, seq_file_path, output_prefix, dt="7D"):
     _date = setup
-    _dt = "7D"
+    _dt = dt
     os.makedirs(f"tests/data/test3/output/{_date}", exist_ok=True)
 
     _filename = generate_figure_df(
@@ -66,8 +65,6 @@ def run_fig_test(setup, set, meta_file_path, seq_file_path, output_prefix):
     )
 
     # Invoke PyEvoMotion as if it were a command line tool
-
-
     result = subprocess.run(
         [
             "PyEvoMotion",
@@ -75,7 +72,6 @@ def run_fig_test(setup, set, meta_file_path, seq_file_path, output_prefix):
             _filename,
             f"tests/data/test3/output/{_date}/{output_prefix}",
             "-k", "total",
-            "-n", "5",
             "-dt", _dt,
             "-dr", "2020-10-01..2021-08-01",
             "-ep",
@@ -87,10 +83,11 @@ def run_fig_test(setup, set, meta_file_path, seq_file_path, output_prefix):
     )
 
     # Check for known errors that happen when random sampling is defficient
-    if ("ValueError: No groups with at least 5 observations" in result.stderr) or ("ValueError: The dataset is (almost) empty at this point of the analysis." in result.stderr):
+    if ("ValueError: No groups with at least 2 observations" in result.stderr) or ("ValueError: The dataset is (almost) empty at this point of the analysis." in result.stderr):
         pytest.skip("Skipped due to insufficient observations in random input. Consider re-running this particular test.")
-
-
+    if result.stderr:
+        print(result.stdout)
+        print(result.stderr)
     assert os.path.exists(f"tests/data/test3/output/{_date}/{output_prefix}_plots.pdf")
 
 def test_UK_dataset(setup):
@@ -133,4 +130,40 @@ def test_USA_figure_dataset(setup):
         "tests/data/test3/test3USA.tsv",
         "tests/data/test3/test3USA.fasta",
         "USAout_fig"
+    )
+
+def test_UK_5D_dataset(setup):
+    """Tests that PyEvoMotion runs correctly with a 5D time-window (for example).
+    """
+    run_fig_test(
+        setup,
+        "UK",
+        "tests/data/test3/test3UK.tsv",
+        "tests/data/test3/test3UK.fasta",
+        "UKout_5D",
+        dt="5D"
+    )
+
+def test_UK_10D_dataset(setup):
+    """Tests that PyEvoMotion runs correctly with a 5D time-window (for example).
+    """
+    run_fig_test(
+        setup,
+        "UK",
+        "tests/data/test3/test3UK.tsv",
+        "tests/data/test3/test3UK.fasta",
+        "UKout_10D",
+        dt="10D"
+    )
+
+def test_UK_14D_dataset(setup):
+    """Tests that PyEvoMotion runs correctly with a 14D time-window (for example).
+    """
+    run_fig_test(
+        setup,
+        "UK",
+        "tests/data/test3/test3UK.tsv",
+        "tests/data/test3/test3UK.fasta",
+        "UKout_14D",
+        dt="14D"
     )

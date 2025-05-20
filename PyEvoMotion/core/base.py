@@ -102,7 +102,7 @@ class PyEvoMotionBase():
             print(f"Method {method} not found in {instance}")
 
     @staticmethod
-    def _remove_nan(x: pd.Series, y: pd.Series) -> tuple[np.ndarray, np.ndarray]:
+    def _remove_nan(x: pd.Series, y: pd.Series, z: pd.Series) -> tuple[np.ndarray, np.ndarray]:
         """
         Remove NaN values from two pandas Series and return them as numpy arrays.
 
@@ -110,22 +110,41 @@ class PyEvoMotionBase():
         :type x: pd.Series
         :param y: the second pandas Series.
         :type y: pd.Series
+        :param z: the third pandas Series.
+        :type z: pd.Series
         :return: a tuple with the two pandas Series without NaN values.
         :rtype: tuple[np.ndarray,np.ndarray]
         """
 
-        data = pd.DataFrame({"x": x, "y": y}).dropna()
+        data = pd.DataFrame({"x": x, "y": y, "z": z}).dropna()
 
         x = data["x"].to_numpy().reshape(-1, 1)
         y = data["y"].to_numpy().reshape(-1, 1)
+        z = data["z"].to_numpy().reshape(-1, 1)
 
-        return x, y
+        return x, y, z
+
+    @staticmethod
+    def _weighting_function(n: int, n_0: int = 30) -> np.ndarray:
+        """
+        Weighting function for the data points.
+
+        :param n: The number of data points.
+        :type n: int
+        :param n_0: The number of data points at which the weighting function approximates the constant 1. Default is 30.
+        :type n_0: int
+        :return: The weighting function.
+        :rtype: np.ndarray
+        """
+
+        return np.tanh(2*n/n_0)
 
     @classmethod
     def linear_regression(cls,
         x: np.ndarray,
         y: np.ndarray,
-        fit_intercept=True
+        weights: np.ndarray | None = None,
+        fit_intercept: bool = True
     ) -> dict[str, any]:
         """
         Perform a linear regression on a set of data.
@@ -136,6 +155,8 @@ class PyEvoMotionBase():
         :type y: np.ndarray
         :param fit_intercept: Whether to fit the intercept. Default is ``True``.
         :type fit_intercept: bool
+        :param weights: Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is ``None``.
+        :type weights: np.ndarray | None
         :return: A dictionary containing:
 
             * ``model``: A ``lambda`` function that computes predictions based on the fitted model.
@@ -145,7 +166,9 @@ class PyEvoMotionBase():
         :rtype: ``dict[str, any]``
         """
 
-        reg = LinearRegression(fit_intercept=fit_intercept).fit(x,y)
+        _weights = cls._weighting_function(weights).flatten() if weights is not None else None
+
+        reg = LinearRegression(fit_intercept=fit_intercept).fit(x, y, sample_weight=_weights)
 
         if fit_intercept:
             model = {
@@ -166,7 +189,7 @@ class PyEvoMotionBase():
                 "expression": "mx"
             }
 
-        model["r2"] = r2_score(y, reg.predict(x))
+        model["r2"] = r2_score(y, reg.predict(x), sample_weight=_weights)
 
         return model
     
@@ -192,7 +215,7 @@ class PyEvoMotionBase():
         return a*np.power(x, b)
 
     @classmethod
-    def power_law_fit(cls, x: np.ndarray, y: np.ndarray) -> dict[str, any]:
+    def power_law_fit(cls, x: np.ndarray, y: np.ndarray, weights: np.ndarray | None = None) -> dict[str, any]:
         """
         Perform a power law fit on a set of data.
 
@@ -200,6 +223,8 @@ class PyEvoMotionBase():
         :type x: np.ndarray
         :param y: A numpy array of the target.
         :type y: np.ndarray
+        :param weights: Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is ``None``.
+        :type weights: np.ndarray | None
         :return: A dictionary containing:
 
             * ``model``: A ``lambda`` function that computes predictions based on the fitted model.
@@ -209,10 +234,13 @@ class PyEvoMotionBase():
         :rtype: ``dict[str, any]``
         """
 
+        _weights = cls._weighting_function(weights).flatten() if weights is not None else None
+
         try:
             _popt, _, _, _msg, _ier = curve_fit(
                 cls._power_law,
                 x.T.tolist()[0], y.T.tolist()[0],
+                sigma=1/np.sqrt(_weights) if _weights is not None else None,
                 full_output=True
             )
         except RuntimeError as e:
@@ -230,16 +258,18 @@ class PyEvoMotionBase():
                 "alpha": _popt[1]
             },
             "expression": "d*x^alpha",
-            "r2": r2_score(y, cls._power_law(x, *_popt))
+            "r2": r2_score(y, cls._power_law(x, *_popt), sample_weight=_weights)
         }
 
         return model
         
-    @staticmethod
+    @classmethod
     def F_test(
+        cls,
         model1: dict[str,any],
         model2: dict[str,any],
-        data: np.ndarray
+        data: np.ndarray,
+        weights: np.ndarray | None = None
     ) -> tuple[float, float]:
         """
         Perform an F-test between two models.
@@ -257,6 +287,11 @@ class PyEvoMotionBase():
         """
 
         data = data.flatten()
+
+        if weights is not None:
+            _weights = cls._weighting_function(weights.flatten())
+        else:
+            _weights = np.ones(len(data))
 
         # Note that p1 < p2 always. Won't do an assertion because I'm making sure elsewhere that the linear model does not have an intercept, i.e. it only has the slope
         p1 = len(model1["parameters"])
@@ -278,8 +313,8 @@ class PyEvoMotionBase():
         )
 
         # Sum the residuals without the infinite values
-        RSS1 = RS1.sum(where=~mask)
-        RSS2 = RS2.sum(where=~mask)
+        RSS1 = np.sum(_weights*RS1, where=~mask)
+        RSS2 = np.sum(_weights*RS2, where=~mask)
 
         F = ((RSS1 - RSS2)/(p2 - p1))/(RSS2/(n - p2))
 
@@ -289,7 +324,8 @@ class PyEvoMotionBase():
     def adjust_model(cls,
         x: pd.Series,
         y: pd.Series,
-        name: str = None
+        name: str = None,
+        weights: np.ndarray | None = None
     ) -> dict[str, any]:
         """Adjust a model to the data.
 
@@ -299,12 +335,14 @@ class PyEvoMotionBase():
         :type y: pd.Series
         :param name: The name of the data. Default is ``None``.
         :type name: str
+        :param weights: Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is ``None``.
+        :type weights: np.ndarray | None
         :return: A dictionary with the model.   
         :rtype: ``dict[str, any]``
         :raises ValueError: If the dataset is empty or full of NaN values. This may occur if the grouped data contains only one entry per group, indicating that the variance cannot be computed.
         """
 
-        x,y = cls._remove_nan(x, y)
+        x,y,w = cls._remove_nan(x, y, weights)
 
         # Raises an error if the dataset is (almost) empty at this point
         if (x.size <= 1) or (y.size <= 1):
@@ -313,10 +351,10 @@ class PyEvoMotionBase():
                 f"Dataset length after filtering is: x: {x.size} elements; y: {y.size} elements. In particular:\n\nx: {x}\ny: {y}\n\nPerhaps NaN appeared for certain entries. Check if the grouped data contains only one entry per group, as this may cause NaN values when computing the variance. Also, consider widening the time window."
             )
 
-        model1 = cls.linear_regression(x, y, fit_intercept=False) # Not fitting the intercept because data is passed scaled to the minimum
-        model2 = cls.power_law_fit(x, y)
+        model1 = cls.linear_regression(x, y, weights=w, fit_intercept=False) # Not fitting the intercept because data is passed scaled to the minimum
+        model2 = cls.power_law_fit(x, y, weights=w)
 
-        _, p = cls.F_test(model1, model2, y)
+        _, p = cls.F_test(model1, model2, y, weights=w)
 
         if p < 0.05:
             model = model2
@@ -337,6 +375,7 @@ class PyEvoMotionBase():
         model_label: str,
         data_xlabel_units: str,
         ax: any,
+        dt_ratio: float,
         **kwargs: dict[str, any]
     ) -> None:
         """
@@ -376,13 +415,13 @@ class PyEvoMotionBase():
                 point_kwargs[_k] = kwargs[k]
 
         ax.scatter(
-            data_x,
+            data_x.to_numpy()*dt_ratio,
             data_y,
             **point_kwargs
         )
         ax.plot(
-            data_x,
-            model(data_x),
+            data_x.to_numpy()*dt_ratio,
+            model(data_x.to_numpy()*dt_ratio),
             label=model_label,
             **line_kwargs
         )
@@ -404,3 +443,28 @@ class PyEvoMotionBase():
             raise ValueError(
                 f"The dataset is (almost) empty at this point of the analysis.\n{msg}"
             )
+
+    @staticmethod
+    def _get_time_ratio(dt: str, reference: str = "7D") -> float:
+        """Get the ratio of a time interval with respect to a reference interval.
+
+        :param dt: Time interval string (e.g. "5D", "7D", "10D", "14D", "12H")
+        :type dt: str
+        :param reference: Reference time interval string. Default is "7D".
+        :type reference: str
+        :return: The ratio of dt to reference
+        :rtype: float
+        """
+
+        return pd.Timedelta(dt) / pd.Timedelta(reference)
+
+    @classmethod
+    def _verify_dt(cls, dt: str) -> None:
+        """Verify that the time window string is greater than 1 day.
+        
+        :param dt: Time window string (e.g. "5D", "7D", "10D", "14D")
+        :type dt: str
+        :raises ValueError: If the time window is not greater than 1 day
+        """
+        if cls._get_time_ratio(dt, "1D") <= 1:
+            raise ValueError(f"Time window must be greater than 1 day. Got {dt}")

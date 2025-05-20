@@ -1,0 +1,47 @@
+{
+    "mean number of substitutions per 7D model": {
+        "parameters": {
+            "m": 0.4998045156781671,
+            "b": -0.026404850139780223
+        },
+        "expression": "mx + b",
+        "r2": 0.9883725921889811
+    },
+    "mean number of indels per 7D model": {
+        "parameters": {
+            "m": 0.0,
+            "b": 0.0
+        },
+        "expression": "mx + b",
+        "r2": 1.0
+    },
+    "mean number of mutations per 7D model": {
+        "parameters": {
+            "m": 0.4998045156781671,
+            "b": -0.026404850139780223
+        },
+        "expression": "mx + b",
+        "r2": 0.9883725921889811
+    },
+    "scaled var number of substitutions per 7D model": {
+        "parameters": {
+            "m": 0.9612373762513134
+        },
+        "expression": "mx",
+        "r2": 0.9042092677439428
+    },
+    "scaled var number of indels per 7D model": {
+        "parameters": {
+            "m": -0.0
+        },
+        "expression": "mx",
+        "r2": 1.0
+    },
+    "scaled var number of mutations per 7D model": {
+        "parameters": {
+            "m": 0.9612373762513134
+        },
+        "expression": "mx",
+        "r2": 0.9042092677439428
+    }
+}

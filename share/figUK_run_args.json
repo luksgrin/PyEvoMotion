@@ -1,0 +1,13 @@
+{
+    "seqs": "tests/data/test3/test3UK.fasta",
+    "meta": "share/figdataUK.tsv",
+    "out": "share/figUK",
+    "delta_t": "7D",
+    "show": false,
+    "export_plots": true,
+    "length_filter": 0,
+    "kind": "total",
+    "filter": null,
+    "genome_positions": null,
+    "date_range": "2020-10-01..2021-08-01"
+}

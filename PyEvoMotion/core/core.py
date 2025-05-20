@@ -62,7 +62,9 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         :type date_range: tuple[str] | None
         """
 
+        self._verify_dt(dt)
         self.dt = dt
+        self.dt_ratio = self._get_time_ratio(dt)
 
         # Parse the input fasta and metadata files
         super().__init__(
@@ -89,7 +91,8 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
     def plot_results(cls,
         stats: pd.DataFrame,
         regs: dict[str, dict[str, any]],
-        data_xlabel_units: str
+        data_xlabel_units: str,
+        dt_ratio: float
     ) -> None:
         """
         Plot the results of the analysis.
@@ -110,7 +113,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             for k,v in regs.items()
             if k.startswith("mean")
         )
-        _mean_data = stats[stats.columns[1]]
+        _mean_data = stats[stats.columns[2]]
         cls.plot_single_data_and_model(
             stats.index,
             _mean_data,
@@ -118,7 +121,8 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             _model["model"],
             r"$r^2$: " + f"{_model['r2']:.2f}",
             data_xlabel_units,
-            ax[0]
+            ax[0],
+            dt_ratio=dt_ratio
         )
 
         # Variance
@@ -127,7 +131,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             for k,v in regs.items()
             if k.startswith("scaled var")
         )
-        _variance_data = stats[stats.columns[2]]
+        _variance_data = stats[stats.columns[3]]
         cls.plot_single_data_and_model(
             stats.index,
             _variance_data,
@@ -135,7 +139,8 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             _model["model"],
             r"$r^2$: " + f"{_model['r2']:.2f}",
             data_xlabel_units,
-            ax[1]
+            ax[1],
+            dt_ratio=dt_ratio
         )
 
         # Dispersion index
@@ -147,6 +152,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             "Poissonian regime",
             data_xlabel_units,
             ax[2],
+            dt_ratio=dt_ratio,
             line_linestyle="--",
             line_color="black"
         )
@@ -159,6 +165,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         stats: pd.DataFrame,
         regs: dict[str, dict[str, any]],
         data_xlabel_units: str,
+        dt_ratio: float,
         output_ptr: str | None = None
     ) -> None:
         """
@@ -183,7 +190,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             for k,v in regs.items()
             if k.startswith("mean")
         )
-        _mean_data = stats[stats.columns[1]]
+        _mean_data = stats[stats.columns[2]]
         cls.plot_single_data_and_model(
             stats.index,
             _mean_data,
@@ -191,7 +198,8 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             _model["model"],
             r"$r^2$: " + f"{_model['r2']:.2f}",
             data_xlabel_units,
-            plt.gca()
+            plt.gca(),
+            dt_ratio=dt_ratio
         )
 
         plt.title(_mean_data.name)
@@ -205,7 +213,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             for k,v in regs.items()
             if k.startswith("scaled var")
         )
-        _variance_data = stats[stats.columns[2]]
+        _variance_data = stats[stats.columns[3]]
         cls.plot_single_data_and_model(
             stats.index,
             _variance_data,
@@ -213,7 +221,8 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             lambda x: _model["model"](x) + _variance_data.min(), # Adjust the model to the original variance
             r"$r^2$: " + f"{_model['r2']:.2f}",
             data_xlabel_units,
-            plt.gca()
+            plt.gca(),
+            dt_ratio=dt_ratio
         )
 
         plt.title(_variance_data.name)
@@ -232,6 +241,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             "Poissonian regime",
             data_xlabel_units,
             plt.gca(),
+            dt_ratio=dt_ratio,
             line_linestyle="--",
             line_color="black"
         )
@@ -360,7 +370,6 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
     def compute_stats(self,
         DT: str,
         origin: str,
-        n_threshold: int | None = None,
         mutation_kind: str = "all"
     ) -> pd.DataFrame:
         """
@@ -372,30 +381,36 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         :type DT: str
         :param origin: The string datetime that will be the origin of the grouping.
         :type origin: str
-        :param n_threshold: Minimum number of sequences required in a time interval to compute statistics.
-        :type n_threshold: int | None
         :param mutation_kind: The kind of mutation to compute the statistics for. Has to be one of ``all``, ``total``, ``substitutions``, ``insertions``, ``deletions`` or ``indels``. Default is ``all``.
         :return: The statistics of the data.
         :rtype: ``pd.DataFrame``
         """
 
-        grouped = self.date_grouper(self.data, DT, origin)
+        # Create a local copy of the data
+        _data = self.data.copy()
 
-        # Only keep weeks where the number of observations is greater than the threshold
-        if n_threshold:
+        # If the very first row's date is the same as the origin, and there happens to be only one entry for that date, duplicate that row; this way the stats for the first week can be computed (with variance = 0 of course)
+        if _data.iloc[0]["date"] == origin and len(_data[_data["date"] == origin]) == 1:
+            _data = pd.concat([_data, pd.DataFrame([_data.iloc[0]])], ignore_index=True)
+            _data.sort_values(by="date", inplace=True)
+            _data.reset_index(drop=True, inplace=True)
 
-            _filtered = grouped.filter(lambda x: len(x) >= n_threshold)
+        # Group the data by the datetime interval
+        grouped = self.date_grouper(_data, DT, origin)
 
-            if len(_filtered) == 0:
-                raise ValueError(
-                    f"No groups with at least {n_threshold} observations. Consider lowering the threshold."
-                )
+        # Only keep weeks where the number of observations is greater than 1
+        _filtered = grouped.filter(lambda x: len(x) >= 2)
 
-            grouped = self.date_grouper(
-                _filtered,
-                DT,
-                origin
-            )
+        if len(_filtered) == 0:
+            raise ValueError(
+                f"No groups with at least 2 observations. Consider widening the time interval."
+             )
+ 
+        grouped = self.date_grouper(
+            _filtered,
+            DT,
+            origin
+        )
 
         levels = [
             f"number of {x}"
@@ -416,7 +431,6 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
 
     def analysis(self,
         length: int,
-        n_threshold: int | None = None,
         show: bool = False,
         mutation_kind: str = "all",
         export_plots_filename: str | None = None
@@ -428,7 +442,6 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         
         :param length: The length to filter by.
         :type length: int
-        :param n_threshold: Minimum number of sequences required in a time interval to compute statistics.
         :param show: Whether to show the plots or not. Default is False.
         :type show: bool
         :param mutation_kind: The kind of mutation to compute the statistics for. Has to be one of ``all``, ``total``, ``substitutions`` or ``indels``. Default is ``all``.
@@ -447,20 +460,22 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         stats = self.compute_stats(
             self.dt,
             self.origin,
-            n_threshold,
             mutation_kind
         )
 
+        # Get weights for weighted fitting
+        weights = stats["size"]
 
         regs = {}
         # For each column in the statistics (except the date and the size), compute the corresponding regression model
         for col in stats.columns[1:-1]:
             if col.startswith("mean"):
                 _single_regression = {
-                    f"{col} per {self.dt} model": self.linear_regression(
+                    f"{col} model": self.linear_regression(
                         *self._remove_nan(
                             stats.index, # Regression is given by the index, so in time, it is the same as multiplying by dt days
-                            stats[col]
+                            stats[col],
+                            weights
                         )
                     )
                 }
@@ -468,10 +483,33 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
                 _single_regression = self.adjust_model(
                     stats.index,
                     stats[col] - stats[col].min(),
-                    name=f"scaled {col} per {self.dt} model"
+                    name=f"scaled {col} model",
+                    weights=weights.to_numpy().flatten()
                 )
             # Save the regression model
             regs.update(_single_regression)
+
+        # Add scaling correction to the regression models
+        for k, v in regs.items():
+            if v["expression"] == "mx + b":
+                m = v["parameters"]["m"]
+                b = v["parameters"]["b"]
+                regs[k]["parameters"]["m"] = m/self.dt_ratio
+                m = regs[k]["parameters"]["m"]
+                regs[k]["model"] = lambda x: m*x + b
+            elif v["expression"] == "mx":
+                m = v["parameters"]["m"]
+                regs[k]["parameters"]["m"] = m/self.dt_ratio
+                m = regs[k]["parameters"]["m"]
+                regs[k]["model"] = lambda x: m*x
+
+            elif v["expression"] == "d*x^alpha":
+                d = v["parameters"]["d"]
+                alpha = v["parameters"]["alpha"]
+                regs[k]["parameters"]["d"] = d/(self.dt_ratio**alpha)
+                d = regs[k]["parameters"]["d"]
+                regs[k]["model"] = lambda x: d*(x**alpha)
+
 
         # Sets of mutation types used in the analysis
         _sets = sorted({
@@ -479,21 +517,24 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             for x in stats.columns[1:-1]
         })
 
+        stats["dt_idx"] = (stats["date"] - stats["date"].min()) / pd.Timedelta("7D")
+
         # Plot the results
         if show:
             # For each set of mutation types
             for _type in _sets:
                 self.plot_results(
-                    stats[["date", f"mean {_type}", f"var {_type}"]],
+                    stats[["date", "dt_idx", f"mean {_type}", f"var {_type}"]],
                     {
                         k: v
                         for k, v in regs.items()
                         if k in (
-                            f"mean {_type} per {self.dt} model",
-                            f"scaled var {_type} per {self.dt} model"
+                            f"mean {_type} model",
+                            f"scaled var {_type} model"
                         )
                     },
-                    f"in steps of {self.dt} since {self.origin}"
+                    "wk",
+                    self.dt_ratio
                 )
         # Export the plots
         if export_plots_filename:
@@ -502,16 +543,17 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             # For each set of mutation types save the plots
             for _type in _sets:
                 self.export_plot_results(
-                    stats[["date", f"mean {_type}", f"var {_type}"]],
+                    stats[["date", "dt_idx", f"mean {_type}", f"var {_type}"]],
                     {
                         k: v
                         for k, v in regs.items()
                         if k in (
-                            f"mean {_type} per {self.dt} model",
-                            f"scaled var {_type} per {self.dt} model"
+                            f"mean {_type} model",
+                            f"scaled var {_type} model"
                         )
                     },
-                    f"in steps of {self.dt} since {self.origin}",
+                    "wk",
+                    self.dt_ratio,
                     pdf
                 )
             # Close pdf file pointer

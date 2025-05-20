@@ -256,13 +256,6 @@ def _parse_arguments() -> argparse.Namespace:
         help="Length filter for the sequences (removes sequences with length less than the specified value). Default is 0."
     )
     parser.add_argument(
-        "-n",
-        "--n_threshold",
-        type=int,
-        default=2,
-        help="Minimum number of sequences required in a time interval to compute statistics. Default is 2."
-    )
-    parser.add_argument(
         "-xj",
         "--export_json",
         action="store_true",
@@ -407,7 +400,6 @@ def _main():
     # Runs the analysis
     stats, reg = instance.analysis(
         length=args.length_filter,
-        n_threshold=args.n_threshold,
         show=args.show,
         mutation_kind=args.kind,
         export_plots_filename=(
@@ -432,6 +424,7 @@ def _main():
     # Exports the regression models to a JSON file
     with open(f"{args.out}_regression_results.json", "w") as file:
         json.dump(_reg, file, indent=4)
+    print(f"Regression results saved to {args.out}_regression_results.json")
 
     # Exits the program with code 0 (success)
     exit(0)

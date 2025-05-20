@@ -1,0 +1,18 @@
+{
+    "mean number of mutations per 7D model": {
+        "parameters": {
+            "m": 0.19547481089767144,
+            "b": 35.634115529420946
+        },
+        "expression": "mx + b",
+        "r2": 0.9637010376538699
+    },
+    "scaled var number of mutations per 7D model": {
+        "parameters": {
+            "d": 1.9496396213906204,
+            "alpha": 0.4010445329484692
+        },
+        "expression": "d*x^alpha",
+        "r2": 0.7403444327797193
+    }
+}

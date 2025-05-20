@@ -7,7 +7,7 @@ _(See [Goiriz L, et al.](http://doi.org/10.1073/pnas.2303578120))_
 ## Installation
 
 > **Note:**
-> `PyEvoMotion` uses [mafft](https://mafft.cbrc.jp/alignment/software/) to do the sequence alignment. If it’s not available in your system, on the the first run of `PyEvoMotion`, it will ask to install it locally.
+> `PyEvoMotion` uses [mafft](https://mafft.cbrc.jp/alignment/software/) to do the sequence alignment. If it's not available in your system, on the first run of `PyEvoMotion`, it will ask to install it locally.
 > 
 > If so, ensure to restart your shell session or run `source ~/.bashrc` to update the PATH environment variable, so that the `mafft` executable is available in your shell.
 >
@@ -54,8 +54,6 @@ options:
   -ep, --export_plots   Export the plots of the analysis.
   -l LENGTH_FILTER, --length_filter LENGTH_FILTER
                         Length filter for the sequences (removes sequences with length less than the specified value). Default is 0.
-  -n N_THRESHOLD, --n_threshold N_THRESHOLD
-                        Minimum number of sequences required in a time interval to compute statistics. Default is 2.
   -xj, --export_json    Export the run arguments to a json file.
   -ij IMPORT_JSON, --import_json IMPORT_JSON
                         Import the run arguments from a JSON file. If this argument is passed, the other arguments are ignored. The JSON file must contain the mandatory keys 'seqs', 'meta', and 'out'.

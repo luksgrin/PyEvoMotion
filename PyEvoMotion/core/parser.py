@@ -153,11 +153,14 @@ class PyEvoMotionParser():
                 mod
                 for mod in x
                 if start - 1 < int(mod.split("_")[1]) < end
-            ]
+            ] if x else ["NO_MUTATION"]
         )
         self.data = self.data[
             self.data["mutation instructions"].apply(len) > 0
         ]
+        self.data["mutation instructions"] = self.data["mutation instructions"].apply(
+            lambda x: [] if x == ["NO_MUTATION"] else x
+        )
 
     def filter_columns(self, filters: dict[str, list[str] | str]) -> None:
         """
