@@ -40,8 +40,8 @@ def test_S1_dataset(setup):
     """Tests that PyEvoMotion can process the S1 synthetic dataset correctly."""
     run_synthetic_test(
         setup,
-        "S1.fasta",
-        "S1.tsv",
+        "tests/data/test4/S1.fasta",
+        "tests/data/test4/S1.tsv",
         "synthdata1_out"
     )
 
@@ -49,7 +49,7 @@ def test_S2_dataset(setup):
     """Tests that PyEvoMotion can process the S2 synthetic dataset correctly."""
     run_synthetic_test(
         setup,
-        "S2.fasta",
-        "S2.tsv",
+        "tests/data/test4/S2.fasta",
+        "tests/data/test4/S2.tsv",
         "synthdata2_out"
-    ) 
+    )  
