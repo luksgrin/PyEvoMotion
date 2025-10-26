@@ -44,6 +44,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage_guide.html">Usage Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../modules.html">PyEvoMotion</a></li>
 </ul>
 
@@ -76,7 +77,7 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">r2_score</span>
 <span class="kn">from</span> <span class="nn">scipy.optimize</span> <span class="kn">import</span> <span class="n">curve_fit</span>
-<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">f</span> <span class="k">as</span> <span class="n">snedecor_f</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">f</span> <span class="k">as</span> <span class="n">snedecor_f</span><span class="p">,</span> <span class="n">t</span> <span class="k">as</span> <span class="n">t_dist</span>
 <span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LinearRegression</span>
 
 
@@ -187,7 +188,7 @@
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2"> not found in </span><span class="si">{</span><span class="n">instance</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">_remove_nan</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">_remove_nan</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Remove NaN values from two pandas Series and return them as numpy arrays.</span>
 
@@ -195,16 +196,69 @@
 <span class="sd">        :type x: pd.Series</span>
 <span class="sd">        :param y: the second pandas Series.</span>
 <span class="sd">        :type y: pd.Series</span>
+<span class="sd">        :param z: the third pandas Series.</span>
+<span class="sd">        :type z: pd.Series</span>
 <span class="sd">        :return: a tuple with the two pandas Series without NaN values.</span>
 <span class="sd">        :rtype: tuple[np.ndarray,np.ndarray]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">})</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="n">z</span><span class="p">})</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
 
         <span class="n">x</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;y&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;z&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span>
 
-        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_weighting_function</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_0</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Weighting function for the data points.</span>
+
+<span class="sd">        :param n: The number of data points.</span>
+<span class="sd">        :type n: int</span>
+<span class="sd">        :param n_0: The number of data points at which the weighting function approximates the constant 1. Default is 30.</span>
+<span class="sd">        :type n_0: int</span>
+<span class="sd">        :return: The weighting function.</span>
+<span class="sd">        :rtype: np.ndarray</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">n</span><span class="o">/</span><span class="n">n_0</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_compute_confidence_intervals</span><span class="p">(</span>
+        <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+        <span class="n">standard_errors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+        <span class="n">degrees_of_freedom</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute confidence intervals for parameters using t-distribution.</span>
+
+<span class="sd">        :param parameters: Dictionary of parameter names and their estimated values.</span>
+<span class="sd">        :type parameters: dict[str, float]</span>
+<span class="sd">        :param standard_errors: Dictionary of parameter names and their standard errors.</span>
+<span class="sd">        :type standard_errors: dict[str, float]</span>
+<span class="sd">        :param degrees_of_freedom: Degrees of freedom for the t-distribution.</span>
+<span class="sd">        :type degrees_of_freedom: int</span>
+<span class="sd">        :param confidence_level: Confidence level for the intervals (default 0.95 for 95% CI).</span>
+<span class="sd">        :type confidence_level: float</span>
+<span class="sd">        :return: Dictionary with parameter names as keys and (lower_bound, upper_bound) tuples as values.</span>
+<span class="sd">        :rtype: dict[str, tuple[float, float]]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">confidence_level</span>
+        <span class="n">t_val</span> <span class="o">=</span> <span class="n">t_dist</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">alpha</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">degrees_of_freedom</span><span class="p">)</span>
+        
+        <span class="n">confidence_intervals</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">param_value</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span>
+            <span class="n">param_se</span> <span class="o">=</span> <span class="n">standard_errors</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span>
+            <span class="n">margin_of_error</span> <span class="o">=</span> <span class="n">t_val</span> <span class="o">*</span> <span class="n">param_se</span>
+            <span class="n">confidence_intervals</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">param_value</span> <span class="o">-</span> <span class="n">margin_of_error</span><span class="p">,</span>
+                <span class="n">param_value</span> <span class="o">+</span> <span class="n">margin_of_error</span>
+            <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">confidence_intervals</span>
 
 <div class="viewcode-block" id="PyEvoMotionBase.linear_regression">
 <a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.linear_regression">[docs]</a>
@@ -212,7 +266,9 @@
     <span class="k">def</span> <span class="nf">linear_regression</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
-        <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">fit_intercept</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Perform a linear regression on a set of data.</span>
@@ -223,16 +279,58 @@
 <span class="sd">        :type y: np.ndarray</span>
 <span class="sd">        :param fit_intercept: Whether to fit the intercept. Default is ``True``.</span>
 <span class="sd">        :type fit_intercept: bool</span>
+<span class="sd">        :param weights: Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is ``None``.</span>
+<span class="sd">        :type weights: np.ndarray | None</span>
+<span class="sd">        :param confidence_level: Confidence level for parameter confidence intervals (default 0.95 for 95% CI).</span>
+<span class="sd">        :type confidence_level: float</span>
 <span class="sd">        :return: A dictionary containing:</span>
 
 <span class="sd">            * ``model``: A ``lambda`` function that computes predictions based on the fitted model.</span>
 <span class="sd">            * ``parameters``: A dictionary with the slope of the regression line.</span>
+<span class="sd">            * ``confidence_intervals``: A dictionary with confidence intervals for each parameter.</span>
 <span class="sd">            * ``expression``: A string representation of the regression equation.</span>
 <span class="sd">            * ``r2``: The :math:`R^2` score of the regression.</span>
 <span class="sd">        :rtype: ``dict[str, any]``</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">reg</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">(</span><span class="n">fit_intercept</span><span class="o">=</span><span class="n">fit_intercept</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">)</span>
+        <span class="n">_weights</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_weighting_function</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="n">reg</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">(</span><span class="n">fit_intercept</span><span class="o">=</span><span class="n">fit_intercept</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="n">_weights</span><span class="p">)</span>
+
+        <span class="c1"># Calculate confidence intervals</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">_df</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="k">if</span> <span class="n">fit_intercept</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># degrees of freedom</span>
+        
+        <span class="c1"># Calculate residuals and MSE</span>
+        <span class="n">y_pred</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">residuals</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="o">-</span> <span class="n">y_pred</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Weighted MSE</span>
+            <span class="n">mse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">_weights</span> <span class="o">*</span> <span class="n">residuals</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">_weights</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="mi">2</span> <span class="k">if</span> <span class="n">fit_intercept</span> <span class="k">else</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">residuals</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">_df</span>
+        
+        <span class="c1"># Calculate standard errors</span>
+        <span class="n">x_flat</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">x_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x_flat</span><span class="p">)</span>
+        <span class="n">sxx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">x_flat</span> <span class="o">-</span> <span class="n">x_mean</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        
+        <span class="c1"># Standard error for slope</span>
+        <span class="n">se_slope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mse</span> <span class="o">/</span> <span class="n">sxx</span><span class="p">)</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]}</span>
+        <span class="n">standard_errors</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">se_slope</span><span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">fit_intercept</span><span class="p">:</span>
+            <span class="n">se_intercept</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">mse</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">n</span> <span class="o">+</span> <span class="n">x_mean</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sxx</span><span class="p">))</span>
+            <span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">intercept_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">standard_errors</span><span class="p">[</span><span class="s2">&quot;b&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">se_intercept</span>
+        
+        <span class="c1"># Compute confidence intervals using the abstracted method</span>
+        <span class="n">confidence_intervals</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_compute_confidence_intervals</span><span class="p">(</span>
+            <span class="n">parameters</span><span class="p">,</span> <span class="n">standard_errors</span><span class="p">,</span> <span class="n">_df</span><span class="p">,</span> <span class="n">confidence_level</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">fit_intercept</span><span class="p">:</span>
             <span class="n">model</span> <span class="o">=</span> <span class="p">{</span>
@@ -241,7 +339,9 @@
                     <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
                     <span class="s2">&quot;b&quot;</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">intercept_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="p">},</span>
-                <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;mx + b&quot;</span>
+                <span class="s2">&quot;confidence_intervals&quot;</span><span class="p">:</span> <span class="n">confidence_intervals</span><span class="p">,</span>
+                <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;mx + b&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;confidence_level&quot;</span><span class="p">:</span> <span class="n">confidence_level</span>
             <span class="p">}</span>
 
         <span class="k">else</span><span class="p">:</span>
@@ -250,10 +350,12 @@
                 <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">{</span>
                     <span class="s2">&quot;m&quot;</span><span class="p">:</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
                 <span class="p">},</span>
-                <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;mx&quot;</span>
+                <span class="s2">&quot;confidence_intervals&quot;</span><span class="p">:</span> <span class="n">confidence_intervals</span><span class="p">,</span>
+                <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;mx&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;confidence_level&quot;</span><span class="p">:</span> <span class="n">confidence_level</span>
             <span class="p">}</span>
 
-        <span class="n">model</span><span class="p">[</span><span class="s2">&quot;r2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="n">model</span><span class="p">[</span><span class="s2">&quot;r2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">sample_weight</span><span class="o">=</span><span class="n">_weights</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">model</span></div>
 
@@ -282,36 +384,97 @@
 <div class="viewcode-block" id="PyEvoMotionBase.power_law_fit">
 <a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.power_law_fit">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">power_law_fit</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">power_law_fit</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Perform a power law fit on a set of data.</span>
+<span class="sd">        </span>
+<span class="sd">        This method fits a power law model of the form :math:`y = d \\cdot x^{\\alpha}` to the data.</span>
+<span class="sd">        Initial parameter estimates are obtained via linear regression on log-transformed data,</span>
+<span class="sd">        which provides better convergence than default initialization.</span>
 
 <span class="sd">        :param x: A numpy array of the features.</span>
 <span class="sd">        :type x: np.ndarray</span>
 <span class="sd">        :param y: A numpy array of the target.</span>
 <span class="sd">        :type y: np.ndarray</span>
+<span class="sd">        :param weights: Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is ``None``.</span>
+<span class="sd">        :type weights: np.ndarray | None</span>
+<span class="sd">        :param confidence_level: Confidence level for parameter confidence intervals (default 0.95 for 95% CI).</span>
+<span class="sd">        :type confidence_level: float</span>
 <span class="sd">        :return: A dictionary containing:</span>
 
 <span class="sd">            * ``model``: A ``lambda`` function that computes predictions based on the fitted model.</span>
-<span class="sd">            * ``parameters``: A dictionary with the parameters of the fitted power law.</span>
+<span class="sd">            * ``parameters``: A dictionary with the parameters of the fitted power law (``d`` and ``alpha``).</span>
+<span class="sd">            * ``confidence_intervals``: A dictionary with confidence intervals for each parameter.</span>
 <span class="sd">            * ``expression``: A string representation of the regression equation.</span>
 <span class="sd">            * ``r2``: The :math:`R^2` score of the regression.</span>
+<span class="sd">            * ``confidence_level``: The confidence level used for the confidence intervals.</span>
 <span class="sd">        :rtype: ``dict[str, any]``</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
+        <span class="n">_weights</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_weighting_function</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="c1"># Provide good initial parameter guesses for power law</span>
+        <span class="c1"># Use linear regression on log-transformed data to get initial estimates</span>
+        <span class="n">x_flat</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">y_flat</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_flat</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_flat</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">x_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x_flat</span><span class="p">)[</span><span class="n">mask</span><span class="p">])</span>
+        <span class="n">y_log</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_flat</span><span class="p">)[</span><span class="n">mask</span><span class="p">])</span>
+        
+        <span class="c1"># Linear regression on log-transformed data: log(y) = log(d) + alpha*log(x)</span>
+        <span class="c1"># This gives us initial estimates for d and alpha</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_log</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">reg</span> <span class="o">=</span> <span class="n">LinearRegression</span><span class="p">(</span><span class="n">fit_intercept</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x_log</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">y_log</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+            
+            <span class="n">p0</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">reg</span><span class="o">.</span><span class="n">intercept_</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">reg</span><span class="o">.</span><span class="n">coef_</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>  <span class="c1"># [d, alpha]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p0</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>  <span class="c1"># Default fallback</span>
+        
+        <span class="c1"># Set reasonable bounds for power law parameters</span>
+        <span class="c1"># d &gt; 0 (coefficient must be positive)</span>
+        <span class="c1"># alpha can be any real number, but constrain to reasonable range</span>
+        <span class="n">bounds</span> <span class="o">=</span> <span class="p">([</span><span class="mf">1e-10</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>  <span class="c1"># [d_min, alpha_min], [d_max, alpha_max]</span>
+        
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">_popt</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_msg</span><span class="p">,</span> <span class="n">_ier</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span>
+            <span class="n">_popt</span><span class="p">,</span> <span class="n">_pcov</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_msg</span><span class="p">,</span> <span class="n">_ier</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span>
                 <span class="bp">cls</span><span class="o">.</span><span class="n">_power_law</span><span class="p">,</span>
-                <span class="n">x</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">x_flat</span><span class="p">,</span> <span class="n">y_flat</span><span class="p">,</span>
+                <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">,</span>
+                <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span>
+                <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">_weights</span><span class="p">)</span> <span class="k">if</span> <span class="n">_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">full_output</span><span class="o">=</span><span class="kc">True</span>
             <span class="p">)</span>
         <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">_ier</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="n">_pcov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]])</span>
 
         <span class="k">if</span> <span class="n">_ier</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">_popt</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+            <span class="n">_pcov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]])</span>
+        
+        <span class="c1"># Calculate confidence intervals from covariance matrix</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">2</span>  <span class="c1"># degrees of freedom for 2 parameters</span>
+        
+        <span class="c1"># Standard errors from covariance matrix diagonal</span>
+        <span class="n">param_errors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">_pcov</span><span class="p">))</span>
+        
+        <span class="c1"># Prepare parameters and standard errors for confidence interval computation</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">}</span>
+        <span class="n">standard_errors</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="n">param_errors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">param_errors</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Compute confidence intervals using the abstracted method</span>
+        <span class="n">confidence_intervals</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_compute_confidence_intervals</span><span class="p">(</span>
+            <span class="n">parameters</span><span class="p">,</span> <span class="n">standard_errors</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">confidence_level</span>
+        <span class="p">)</span>
         
         <span class="n">model</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
@@ -319,8 +482,10 @@
                 <span class="s2">&quot;d&quot;</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="s2">&quot;alpha&quot;</span><span class="p">:</span> <span class="n">_popt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
             <span class="p">},</span>
+            <span class="s2">&quot;confidence_intervals&quot;</span><span class="p">:</span> <span class="n">confidence_intervals</span><span class="p">,</span>
             <span class="s2">&quot;expression&quot;</span><span class="p">:</span> <span class="s2">&quot;d*x^alpha&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;r2&quot;</span><span class="p">:</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_power_law</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">_popt</span><span class="p">))</span>
+            <span class="s2">&quot;confidence_level&quot;</span><span class="p">:</span> <span class="n">confidence_level</span><span class="p">,</span>
+            <span class="s2">&quot;r2&quot;</span><span class="p">:</span> <span class="n">r2_score</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_power_law</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">_popt</span><span class="p">),</span> <span class="n">sample_weight</span><span class="o">=</span><span class="n">_weights</span><span class="p">)</span>
         <span class="p">}</span>
 
         <span class="k">return</span> <span class="n">model</span></div>
@@ -328,11 +493,13 @@
         
 <div class="viewcode-block" id="PyEvoMotionBase.F_test">
 <a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.F_test">[docs]</a>
-    <span class="nd">@staticmethod</span>
+    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">F_test</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
         <span class="n">model1</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">any</span><span class="p">],</span>
         <span class="n">model2</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">any</span><span class="p">],</span>
-        <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Perform an F-test between two models.</span>
@@ -350,6 +517,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_weights</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_weighting_function</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
 
         <span class="c1"># Note that p1 &lt; p2 always. Won&#39;t do an assertion because I&#39;m making sure elsewhere that the linear model does not have an intercept, i.e. it only has the slope</span>
         <span class="n">p1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model1</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">])</span>
@@ -371,23 +543,118 @@
         <span class="p">)</span>
 
         <span class="c1"># Sum the residuals without the infinite values</span>
-        <span class="n">RSS1</span> <span class="o">=</span> <span class="n">RS1</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
-        <span class="n">RSS2</span> <span class="o">=</span> <span class="n">RS2</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">RSS1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">_weights</span><span class="o">*</span><span class="n">RS1</span><span class="p">,</span> <span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">RSS2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">_weights</span><span class="o">*</span><span class="n">RS2</span><span class="p">,</span> <span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
 
         <span class="n">F</span> <span class="o">=</span> <span class="p">((</span><span class="n">RSS1</span> <span class="o">-</span> <span class="n">RSS2</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">p2</span> <span class="o">-</span> <span class="n">p1</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">RSS2</span><span class="o">/</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">p2</span><span class="p">))</span>
 
-        <span class="k">return</span> <span class="n">F</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">snedecor_f</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">p2</span> <span class="o">-</span> <span class="n">p1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="n">p2</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">F</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">snedecor_f</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">F</span><span class="p">,</span> <span class="n">p2</span> <span class="o">-</span> <span class="n">p1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="n">p2</span><span class="p">)</span> </div>
 
     
+<div class="viewcode-block" id="PyEvoMotionBase.AIC">
+<a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.AIC">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">AIC</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">model1</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">any</span><span class="p">],</span>
+        <span class="n">model2</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">any</span><span class="p">],</span>
+        <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform an AIC test between two models.</span>
+
+<span class="sd">        Uses the small-sample corrected AIC with full constant terms:</span>
+<span class="sd">            AICc = n*ln(2*pi) + n*ln(RSS/n) + n + 2k + [2k(k+1)]/(n-k-1)</span>
+
+<span class="sd">        See https://en.wikipedia.org/wiki/Akaike_information_criterion for more details.</span>
+
+<span class="sd">        :param model1: The first model.</span>
+<span class="sd">        :type model1: dict[str, any]</span>
+<span class="sd">        :param model2: The second model.</span>
+<span class="sd">        :type model2: dict[str, any]</span>
+<span class="sd">        :param data: The data to test the models.</span>
+<span class="sd">        :type data: np.ndarray</span>
+<span class="sd">        :return: A tuple with the F-value and the p-value.</span>
+<span class="sd">        :rtype: ``tuple[float, float]``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_weights</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_weighting_function</span><span class="p">(</span><span class="n">weights</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+        <span class="n">k1</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model1</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">])</span>
+        <span class="n">k2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model2</span><span class="p">[</span><span class="s2">&quot;parameters&quot;</span><span class="p">])</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">model1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">model1</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+        <span class="n">model2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vectorize</span><span class="p">(</span><span class="n">model2</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">])</span>
+
+        <span class="n">RS1</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">model1</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">RS2</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span> <span class="o">-</span> <span class="n">model2</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="c1"># Mask the infinite and nan values</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">RS1</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">RS2</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">RS1</span><span class="p">)</span>
+            <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">RS2</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Sum the residuals without the infinite values</span>
+        <span class="n">RSS1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">_weights</span><span class="o">*</span><span class="n">RS1</span><span class="p">,</span> <span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
+        <span class="n">RSS2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">_weights</span><span class="o">*</span><span class="n">RS2</span><span class="p">,</span> <span class="n">where</span><span class="o">=~</span><span class="n">mask</span><span class="p">)</span>
+
+        <span class="c1"># Handle edge case where RSS is 0 (perfect fit) to avoid log(0)</span>
+        <span class="k">if</span> <span class="n">RSS1</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">RSS1</span> <span class="o">=</span> <span class="mf">1e-10</span>  <span class="c1"># Small positive value to avoid log(0)</span>
+        <span class="k">if</span> <span class="n">RSS2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">RSS2</span> <span class="o">=</span> <span class="mf">1e-10</span>  <span class="c1"># Small positive value to avoid log(0)</span>
+
+        <span class="n">const_term</span> <span class="o">=</span> <span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="n">denom1</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">k1</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">denom2</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">k2</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># If denom &lt;= 0, AICc is undefined; treat as +inf (no support)</span>
+        <span class="k">if</span> <span class="n">denom1</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">AICc1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">AICc1</span> <span class="o">=</span> <span class="n">const_term</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">RSS1</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">k1</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">k1</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">denom1</span>
+
+        <span class="k">if</span> <span class="n">denom2</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">AICc2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">AICc2</span> <span class="o">=</span> <span class="n">const_term</span> <span class="o">+</span> <span class="n">n</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">RSS2</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">+</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">*</span> <span class="p">(</span><span class="n">k2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">denom2</span>
+
+        <span class="c1"># ΔAIC: relative to best (lowest AIC)</span>
+        <span class="n">min_aicc</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">AICc1</span><span class="p">,</span> <span class="n">AICc2</span><span class="p">)</span>
+        <span class="n">dAICc1</span> <span class="o">=</span> <span class="n">AICc1</span> <span class="o">-</span> <span class="n">min_aicc</span>
+        <span class="n">dAICc2</span> <span class="o">=</span> <span class="n">AICc2</span> <span class="o">-</span> <span class="n">min_aicc</span>
+
+        <span class="c1"># Akaike weights</span>
+        <span class="n">rel1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">dAICc1</span><span class="p">)</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dAICc1</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">rel2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">dAICc2</span><span class="p">)</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">dAICc2</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="n">denom</span> <span class="o">=</span> <span class="n">rel1</span> <span class="o">+</span> <span class="n">rel2</span> <span class="k">if</span> <span class="p">(</span><span class="n">rel1</span> <span class="o">+</span> <span class="n">rel2</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">1.0</span>
+        <span class="n">w1</span> <span class="o">=</span> <span class="n">rel1</span> <span class="o">/</span> <span class="n">denom</span>
+        <span class="n">w2</span> <span class="o">=</span> <span class="n">rel2</span> <span class="o">/</span> <span class="n">denom</span>
+
+        <span class="k">return</span> <span class="n">AICc1</span><span class="p">,</span> <span class="n">AICc2</span><span class="p">,</span> <span class="n">dAICc1</span><span class="p">,</span> <span class="n">dAICc2</span><span class="p">,</span> <span class="n">w1</span><span class="p">,</span> <span class="n">w2</span> </div>
+
+
 <div class="viewcode-block" id="PyEvoMotionBase.adjust_model">
 <a class="viewcode-back" href="../../../PyEvoMotion.core.html#PyEvoMotion.core.base.PyEvoMotionBase.adjust_model">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">adjust_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
         <span class="n">y</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
-        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">confidence_level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjust a model to the data.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Adjust a model to the data using AIC for model selection.</span>
 
 <span class="sd">        :param x: The features. It is a single pandas Series.</span>
 <span class="sd">        :type x: pd.Series</span>
@@ -395,34 +662,84 @@
 <span class="sd">        :type y: pd.Series</span>
 <span class="sd">        :param name: The name of the data. Default is ``None``.</span>
 <span class="sd">        :type name: str</span>
-<span class="sd">        :return: A dictionary with the model.   </span>
+<span class="sd">        :param weights: Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is ``None``.</span>
+<span class="sd">        :type weights: np.ndarray | None</span>
+<span class="sd">        :param confidence_level: Confidence level for parameter confidence intervals (default 0.95 for 95% CI).</span>
+<span class="sd">        :type confidence_level: float</span>
+<span class="sd">        :return: A dictionary containing:</span>
+<span class="sd">        </span>
+<span class="sd">            * If name is provided: A dictionary with the name as key and the result dictionary as value</span>
+<span class="sd">            * If name is None: A dictionary containing:</span>
+<span class="sd">            </span>
+<span class="sd">                * ``selected_model``: The selected model based on lowest AIC</span>
+<span class="sd">                * ``linear_model``: The linear regression model with AIC statistics</span>
+<span class="sd">                * ``power_law_model``: The power law model with AIC statistics</span>
+<span class="sd">                * ``model_selection``: Dictionary with AIC comparison results</span>
+<span class="sd">                </span>
 <span class="sd">        :rtype: ``dict[str, any]``</span>
 <span class="sd">        :raises ValueError: If the dataset is empty or full of NaN values. This may occur if the grouped data contains only one entry per group, indicating that the variance cannot be computed.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">x</span><span class="p">,</span><span class="n">y</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_remove_nan</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">w</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_remove_nan</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
 
-        <span class="c1"># Raises an error if the dataset is empty at this point</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># Raises an error if the dataset is (almost) empty at this point</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">):</span>
             <span class="bp">cls</span><span class="o">.</span><span class="n">_check_dataset_is_not_empty</span><span class="p">(</span>
                 <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span>
-                <span class="sa">f</span><span class="s2">&quot;Dataset length after filtering is: x: </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> elements; y: </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> elements. Perhaps NaN appeared certrain entries. Check if the grouped data contains only one entry per group, as this may cause NaN values when computing the variance. Also, consider widening the time window.&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Dataset length after filtering is: x: </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> elements; y: </span><span class="si">{</span><span class="n">y</span><span class="o">.</span><span class="n">size</span><span class="si">}</span><span class="s2"> elements. In particular:</span><span class="se">\n\n</span><span class="s2">x: </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="se">\n</span><span class="s2">y: </span><span class="si">{</span><span class="n">y</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">Perhaps NaN appeared for certain entries. Check if the grouped data contains only one entry per group, as this may cause NaN values when computing the variance. Also, consider widening the time window.&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">model1</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">linear_regression</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># Not fitting the intercept because data is passed scaled to the minimum</span>
-        <span class="n">model2</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">power_law_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">model1</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">linear_regression</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">fit_intercept</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">confidence_level</span><span class="o">=</span><span class="n">confidence_level</span><span class="p">)</span> <span class="c1"># Not fitting the intercept because data is passed scaled to the minimum</span>
+        <span class="n">model2</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">power_law_fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">confidence_level</span><span class="o">=</span><span class="n">confidence_level</span><span class="p">)</span>
 
-        <span class="n">_</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">F_test</span><span class="p">(</span><span class="n">model1</span><span class="p">,</span> <span class="n">model2</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="c1"># Compute AIC statistics for both models</span>
+        <span class="n">AIC1</span><span class="p">,</span> <span class="n">AIC2</span><span class="p">,</span> <span class="n">dAIC1</span><span class="p">,</span> <span class="n">dAIC2</span><span class="p">,</span> <span class="n">w1</span><span class="p">,</span> <span class="n">w2</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">AIC</span><span class="p">(</span><span class="n">model1</span><span class="p">,</span> <span class="n">model2</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">p</span> <span class="o">&lt;</span> <span class="mf">0.05</span><span class="p">:</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">model2</span>
+        <span class="c1"># Select model with lowest AIC (highest Akaike weight)</span>
+        <span class="k">if</span> <span class="n">AIC1</span> <span class="o">&lt;=</span> <span class="n">AIC2</span><span class="p">:</span>
+            <span class="n">selected_model</span> <span class="o">=</span> <span class="n">model1</span>
+            <span class="n">selected_model_name</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">model1</span>
+            <span class="n">selected_model</span> <span class="o">=</span> <span class="n">model2</span>
+            <span class="n">selected_model_name</span> <span class="o">=</span> <span class="s2">&quot;power_law&quot;</span>
+
+        <span class="c1"># Add AIC statistics to each model</span>
+        <span class="n">model1_with_aic</span> <span class="o">=</span> <span class="n">model1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">model1_with_aic</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s2">&quot;AIC&quot;</span><span class="p">:</span> <span class="n">AIC1</span><span class="p">,</span>
+            <span class="s2">&quot;delta_AIC&quot;</span><span class="p">:</span> <span class="n">dAIC1</span><span class="p">,</span>
+            <span class="s2">&quot;akaike_weight&quot;</span><span class="p">:</span> <span class="n">w1</span><span class="p">,</span>
+            <span class="s2">&quot;confidence_level&quot;</span><span class="p">:</span> <span class="n">confidence_level</span>
+        <span class="p">})</span>
+
+        <span class="n">model2_with_aic</span> <span class="o">=</span> <span class="n">model2</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">model2_with_aic</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s2">&quot;AIC&quot;</span><span class="p">:</span> <span class="n">AIC2</span><span class="p">,</span>
+            <span class="s2">&quot;delta_AIC&quot;</span><span class="p">:</span> <span class="n">dAIC2</span><span class="p">,</span>
+            <span class="s2">&quot;akaike_weight&quot;</span><span class="p">:</span> <span class="n">w2</span><span class="p">,</span>
+            <span class="s2">&quot;confidence_level&quot;</span><span class="p">:</span> <span class="n">confidence_level</span>
+        <span class="p">})</span>
+
+        <span class="c1"># Create comprehensive result dictionary</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;selected_model&quot;</span><span class="p">:</span> <span class="n">selected_model</span><span class="p">,</span>
+            <span class="s2">&quot;linear_model&quot;</span><span class="p">:</span> <span class="n">model1_with_aic</span><span class="p">,</span>
+            <span class="s2">&quot;power_law_model&quot;</span><span class="p">:</span> <span class="n">model2_with_aic</span><span class="p">,</span>
+            <span class="s2">&quot;model_selection&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;selected&quot;</span><span class="p">:</span> <span class="n">selected_model_name</span><span class="p">,</span>
+                <span class="s2">&quot;linear_AIC&quot;</span><span class="p">:</span> <span class="n">AIC1</span><span class="p">,</span>
+                <span class="s2">&quot;power_law_AIC&quot;</span><span class="p">:</span> <span class="n">AIC2</span><span class="p">,</span>
+                <span class="s2">&quot;delta_AIC_linear&quot;</span><span class="p">:</span> <span class="n">dAIC1</span><span class="p">,</span>
+                <span class="s2">&quot;delta_AIC_power_law&quot;</span><span class="p">:</span> <span class="n">dAIC2</span><span class="p">,</span>
+                <span class="s2">&quot;akaike_weight_linear&quot;</span><span class="p">:</span> <span class="n">w1</span><span class="p">,</span>
+                <span class="s2">&quot;akaike_weight_power_law&quot;</span><span class="p">:</span> <span class="n">w2</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
 
         <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">model</span><span class="p">}</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">result</span><span class="p">}</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">model</span></div>
+            <span class="k">return</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="PyEvoMotionBase.plot_single_data_and_model">
@@ -436,6 +753,7 @@
         <span class="n">model_label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">data_xlabel_units</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">ax</span><span class="p">:</span> <span class="nb">any</span><span class="p">,</span>
+        <span class="n">dt_ratio</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">]</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -475,13 +793,13 @@
                 <span class="n">point_kwargs</span><span class="p">[</span><span class="n">_k</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
         <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
-            <span class="n">data_x</span><span class="p">,</span>
+            <span class="n">data_x</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">*</span><span class="n">dt_ratio</span><span class="p">,</span>
             <span class="n">data_y</span><span class="p">,</span>
             <span class="o">**</span><span class="n">point_kwargs</span>
         <span class="p">)</span>
         <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-            <span class="n">data_x</span><span class="p">,</span>
-            <span class="n">model</span><span class="p">(</span><span class="n">data_x</span><span class="p">),</span>
+            <span class="n">data_x</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">*</span><span class="n">dt_ratio</span><span class="p">,</span>
+            <span class="n">model</span><span class="p">(</span><span class="n">data_x</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span><span class="o">*</span><span class="n">dt_ratio</span><span class="p">),</span>
             <span class="n">label</span><span class="o">=</span><span class="n">model_label</span><span class="p">,</span>
             <span class="o">**</span><span class="n">line_kwargs</span>
         <span class="p">)</span>
@@ -502,8 +820,33 @@
 
         <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;The dataset is empty at this point of the analysis.</span><span class="se">\n</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span></div>
+                <span class="sa">f</span><span class="s2">&quot;The dataset is (almost) empty at this point of the analysis.</span><span class="se">\n</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_time_ratio</span><span class="p">(</span><span class="n">dt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;7D&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the ratio of a time interval with respect to a reference interval.</span>
+
+<span class="sd">        :param dt: Time interval string (e.g. &quot;5D&quot;, &quot;7D&quot;, &quot;10D&quot;, &quot;14D&quot;, &quot;12H&quot;)</span>
+<span class="sd">        :type dt: str</span>
+<span class="sd">        :param reference: Reference time interval string. Default is &quot;7D&quot;.</span>
+<span class="sd">        :type reference: str</span>
+<span class="sd">        :return: The ratio of dt to reference</span>
+<span class="sd">        :rtype: float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">/</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">reference</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_verify_dt</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Verify that the time window string is greater than 1 day.</span>
+<span class="sd">        </span>
+<span class="sd">        :param dt: Time window string (e.g. &quot;5D&quot;, &quot;7D&quot;, &quot;10D&quot;, &quot;14D&quot;)</span>
+<span class="sd">        :type dt: str</span>
+<span class="sd">        :raises ValueError: If the time window is not greater than 1 day</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_time_ratio</span><span class="p">(</span><span class="n">dt</span><span class="p">,</span> <span class="s2">&quot;1D&quot;</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time window must be greater than 1 day. Got </span><span class="si">{</span><span class="n">dt</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 </pre></div>
 

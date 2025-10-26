@@ -6,6 +6,7 @@
   * [Submodules](PyEvoMotion.core.md#submodules)
   * [PyEvoMotion.core.base module](PyEvoMotion.core.md#module-PyEvoMotion.core.base)
     * [`PyEvoMotionBase`](PyEvoMotion.core.md#PyEvoMotion.core.base.PyEvoMotionBase)
+      * [`PyEvoMotionBase.AIC()`](PyEvoMotion.core.md#PyEvoMotion.core.base.PyEvoMotionBase.AIC)
       * [`PyEvoMotionBase.F_test()`](PyEvoMotion.core.md#PyEvoMotion.core.base.PyEvoMotionBase.F_test)
       * [`PyEvoMotionBase.adjust_model()`](PyEvoMotion.core.md#PyEvoMotion.core.base.PyEvoMotionBase.adjust_model)
       * [`PyEvoMotionBase.count_prefixes()`](PyEvoMotion.core.md#PyEvoMotion.core.base.PyEvoMotionBase.count_prefixes)

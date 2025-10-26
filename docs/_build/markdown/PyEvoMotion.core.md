@@ -12,7 +12,25 @@ Base class for the `PyEvoMotion` project.
 
 This class contains no data and is meant to be used as a mixin (provides utility methods for the project). It is inherited by [`PyEvoMotion`](PyEvoMotion.md#module-PyEvoMotion).
 
-#### *static* F_test(model1: dict[str, any], model2: dict[str, any], data: ndarray) → tuple[float, float]
+#### *classmethod* AIC(model1: dict[str, any], model2: dict[str, any], data: ndarray, weights: ndarray | None = None) → tuple[float, float]
+
+Perform an AIC test between two models.
+
+Uses the small-sample corrected AIC with full constant terms:
+: AICc = n\*ln(2\*pi) + n\*ln(RSS/n) + n + 2k + [2k(k+1)]/(n-k-1)
+
+See [https://en.wikipedia.org/wiki/Akaike_information_criterion](https://en.wikipedia.org/wiki/Akaike_information_criterion) for more details.
+
+* **Parameters:**
+  * **model1** (*dict* *[**str* *,* *any* *]*) – The first model.
+  * **model2** (*dict* *[**str* *,* *any* *]*) – The second model.
+  * **data** (*np.ndarray*) – The data to test the models.
+* **Returns:**
+  A tuple with the F-value and the p-value.
+* **Return type:**
+  `tuple[float, float]`
+
+#### *classmethod* F_test(model1: dict[str, any], model2: dict[str, any], data: ndarray, weights: ndarray | None = None) → tuple[float, float]
 
 Perform an F-test between two models.
 
@@ -27,16 +45,24 @@ See [https://en.wikipedia.org/wiki/F-test#Regression_problems](https://en.wikipe
 * **Return type:**
   `tuple[float, float]`
 
-#### *classmethod* adjust_model(x: Series, y: Series, name: str = None) → dict[str, any]
+#### *classmethod* adjust_model(x: Series, y: Series, name: str = None, weights: Series | None = None, confidence_level: float = 0.95) → dict[str, any]
 
-Adjust a model to the data.
+Adjust a model to the data using AIC for model selection.
 
 * **Parameters:**
   * **x** (*pd.Series*) – The features. It is a single pandas Series.
   * **y** (*pd.Series*) – The target. It is a single pandas Series.
   * **name** (*str*) – The name of the data. Default is `None`.
+  * **weights** (*np.ndarray* *|* *None*) – Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2\*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is `None`.
+  * **confidence_level** (*float*) – Confidence level for parameter confidence intervals (default 0.95 for 95% CI).
 * **Returns:**
-  A dictionary with the model.
+  A dictionary containing:
+  * If name is provided: A dictionary with the name as key and the result dictionary as value
+  * If name is None: A dictionary containing:
+    > * `selected_model`: The selected model based on lowest AIC
+    > * `linear_model`: The linear regression model with AIC statistics
+    > * `power_law_model`: The power law model with AIC statistics
+    > * `model_selection`: Dictionary with AIC comparison results
 * **Return type:**
   `dict[str, any]`
 * **Raises:**
@@ -67,7 +93,7 @@ Create grouped dataframe based on a `datetime` frequency.
 * **Return type:**
   `pd.core.groupby.generic.DataFrameGroupBy`
 
-#### *classmethod* linear_regression(x: ndarray, y: ndarray, fit_intercept=True) → dict[str, any]
+#### *classmethod* linear_regression(x: ndarray, y: ndarray, weights: ndarray | None = None, fit_intercept: bool = True, confidence_level: float = 0.95) → dict[str, any]
 
 Perform a linear regression on a set of data.
 
@@ -75,10 +101,13 @@ Perform a linear regression on a set of data.
   * **x** (*np.ndarray*) – A numpy array of the features.
   * **y** (*np.ndarray*) – A numpy array of the target.
   * **fit_intercept** (*bool*) – Whether to fit the intercept. Default is `True`.
+  * **weights** (*np.ndarray* *|* *None*) – Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2\*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is `None`.
+  * **confidence_level** (*float*) – Confidence level for parameter confidence intervals (default 0.95 for 95% CI).
 * **Returns:**
   A dictionary containing:
   * `model`: A `lambda` function that computes predictions based on the fitted model.
   * `parameters`: A dictionary with the slope of the regression line.
+  * `confidence_intervals`: A dictionary with confidence intervals for each parameter.
   * `expression`: A string representation of the regression equation.
   * `r2`: The $R^2$ score of the regression.
 * **Return type:**
@@ -97,7 +126,7 @@ Get the length modification induced by a mutation.
 * **Raises:**
   **ValueError** – If the mutation is not one of `s`, `i` or `d`.
 
-#### *static* plot_single_data_and_model(data_x: RangeIndex, data_y: Series, data_ylabel: str, model: callable, model_label: str, data_xlabel_units: str, ax: any, \*\*kwargs: dict[str, any]) → None
+#### *static* plot_single_data_and_model(data_x: RangeIndex, data_y: Series, data_ylabel: str, model: callable, model_label: str, data_xlabel_units: str, ax: any, dt_ratio: float, \*\*kwargs: dict[str, any]) → None
 
 Low level utility function to plot the data and a model.
 
@@ -111,19 +140,27 @@ Low level utility function to plot the data and a model.
   * **ax** (*any*) – The axis to plot.
   * **kwargs** (*dict* *[**str* *,* *any* *]*) – Additional arguments to pass to the plot
 
-#### *classmethod* power_law_fit(x: ndarray, y: ndarray) → dict[str, any]
+#### *classmethod* power_law_fit(x: ndarray, y: ndarray, weights: ndarray | None = None, confidence_level: float = 0.95) → dict[str, any]
 
 Perform a power law fit on a set of data.
+
+This method fits a power law model of the form $y = d \cdot x^{\alpha}$ to the data.
+Initial parameter estimates are obtained via linear regression on log-transformed data,
+which provides better convergence than default initialization.
 
 * **Parameters:**
   * **x** (*np.ndarray*) – A numpy array of the features.
   * **y** (*np.ndarray*) – A numpy array of the target.
+  * **weights** (*np.ndarray* *|* *None*) – Optional weights for the data points. If provided, points with higher weights will have more influence on the fit. These weights are scaled by the weighting function tanh(2\*n/n_0), where n is the number of data points and n_0 is the number of data points at which the weighting function approximates the constant 1. Default is `None`.
+  * **confidence_level** (*float*) – Confidence level for parameter confidence intervals (default 0.95 for 95% CI).
 * **Returns:**
   A dictionary containing:
   * `model`: A `lambda` function that computes predictions based on the fitted model.
-  * `parameters`: A dictionary with the parameters of the fitted power law.
+  * `parameters`: A dictionary with the parameters of the fitted power law (`d` and `alpha`).
+  * `confidence_intervals`: A dictionary with confidence intervals for each parameter.
   * `expression`: A string representation of the regression equation.
   * `r2`: The $R^2$ score of the regression.
+  * `confidence_level`: The confidence level used for the confidence intervals.
 * **Return type:**
   `dict[str, any]`
 
@@ -154,7 +191,7 @@ reference: `str`
 \_MUTATION_TYPES: `list[str]`
 : The types of mutations that can be found in the data. Namely `substitutions` and `indels`.
 
-#### analysis(length: int, n_threshold: int | None = None, show: bool = False, mutation_kind: str = 'all', export_plots_filename: str | None = None) → tuple[DataFrame, dict[str, dict[str, any]]]
+#### analysis(length: int, show: bool = False, mutation_kind: str = 'all', export_plots_filename: str | None = None, confidence_level: float = 0.95) → tuple[DataFrame, dict[str, dict[str, any]]]
 
 Perform the global analysis of the data.
 
@@ -162,16 +199,16 @@ It computes the statistics and the regression models for the mean and variance o
 
 * **Parameters:**
   * **length** (*int*) – The length to filter by.
-  * **n_threshold** – Minimum number of sequences required in a time interval to compute statistics.
   * **show** (*bool*) – Whether to show the plots or not. Default is False.
   * **mutation_kind** (*str*) – The kind of mutation to compute the statistics for. Has to be one of `all`, `total`, `substitutions` or `indels`. Default is `all`.
-  * **export_plots** (*str* *|* *None*) – Filename to export the plots. Default is None and does not export the plots.
+  * **export_plots_filename** (*str* *|* *None*) – Filename to export the plots. Default is None and does not export the plots.
+  * **confidence_level** (*float*) – Confidence level for parameter confidence intervals (default 0.95 for 95% CI).
 * **Returns:**
   The statistics and the regression models.
 * **Return type:**
   `tuple[pd.DataFrame, dict[str, dict[str, any]]]`
 
-#### compute_stats(DT: str, origin: str, n_threshold: int | None = None, mutation_kind: str = 'all') → DataFrame
+#### compute_stats(DT: str, origin: str, mutation_kind: str = 'all') → DataFrame
 
 Compute the length, mean and variance of the data.
 
@@ -180,7 +217,6 @@ It computes the mean and variance of the data for the specified mutation kind (o
 * **Parameters:**
   * **DT** (*str*) – The string datetime interval that will govern the grouping.
   * **origin** (*str*) – The string datetime that will be the origin of the grouping.
-  * **n_threshold** (*int* *|* *None*) – Minimum number of sequences required in a time interval to compute statistics.
   * **mutation_kind** – The kind of mutation to compute the statistics for. Has to be one of `all`, `total`, `substitutions`, `insertions`, `deletions` or `indels`. Default is `all`.
 * **Returns:**
   The statistics of the data.
@@ -193,7 +229,7 @@ Count the number of substitutions, insertions and deletions in the data.
 
 It updates the `data` attribute by adding the columns `number of substitutions`, `number of indels` and `number of mutations`.
 
-#### *classmethod* export_plot_results(stats: DataFrame, regs: dict[str, dict[str, any]], data_xlabel_units: str, output_ptr: str | None = None) → None
+#### *classmethod* export_plot_results(stats: DataFrame, regs: dict[str, dict[str, any]], data_xlabel_units: str, dt_ratio: float, output_ptr: str | None = None) → None
 
 Export the results of the analysis to a `.pdf` file.
 
@@ -232,7 +268,7 @@ It updates the `data` attribute by filtering the data by the number of `N` in th
   * **threshold** (*float* *|* *int*) – The threshold to filter by. Must be between 0 and 1. Default is 0.01.
   * **how** (*str*) – The filter condition. It can be `gt` (greater than), `lt` (less than) or `eq` (equal to).
 
-#### *classmethod* plot_results(stats: DataFrame, regs: dict[str, dict[str, any]], data_xlabel_units: str) → None
+#### *classmethod* plot_results(stats: DataFrame, regs: dict[str, dict[str, any]], data_xlabel_units: str, dt_ratio: float) → None
 
 Plot the results of the analysis.
 

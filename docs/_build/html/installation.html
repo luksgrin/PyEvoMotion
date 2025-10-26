@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="PyEvoMotion" href="modules.html" />
+    <link rel="next" title="Usage Guide" href="usage_guide.html" />
     <link rel="prev" title="Overview" href="overview.html" /> 
 </head>
 
@@ -46,7 +46,21 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#from-pypi">From PyPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#from-source">From Source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verification">Verification</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#running-tests">Running Tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#docker-installation">Docker Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#running-the-container">Running the Container</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#included-data-in-docker">Included Data in Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-tests-in-docker">Running Tests in Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reproducing-the-figure-from-the-original-manuscript">Reproducing the Figure from the Original Manuscript</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="usage_guide.html">Usage Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">PyEvoMotion</a></li>
 </ul>
 
@@ -75,19 +89,31 @@
            <div itemprop="articleBody">
              
   <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code> uses <a class="reference external" href="https://mafft.cbrc.jp/alignment/software/">mafft</a> to do the sequence alignment. If it’s not available in your system, the installation script will install it locally.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code> uses <a class="reference external" href="https://mafft.cbrc.jp/alignment/software/">mafft</a> to do the sequence alignment. If it’s not available in your system, on the first run of <code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code>, it will ask to install it locally.</p>
 <p>If so, ensure to restart your shell session or run <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">~/.bashrc</span></code> to update the PATH environment variable, so that the <code class="docutils literal notranslate"><span class="pre">mafft</span></code> executable is available in your shell.</p>
 </div>
-<p>To install <code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code> you must clone the repository and run the installation script:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/luksgrin/PyEvoMotion
-<span class="nb">cd</span><span class="w"> </span>PyEvoMotion
-python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.
+<section id="from-pypi">
+<h2>From PyPI<a class="headerlink" href="#from-pypi" title="Link to this heading"></a></h2>
+<p>The simplest way to install PyEvoMotion is from PyPI:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>PyEvoMotion
 </pre></div>
 </div>
-<p>This will install the package and its dependencies.</p>
+<p>This will install the package and its dependencies <em>(but not the tests nor the test data)</em>.</p>
+</section>
+<section id="from-source">
+<h2>From Source<a class="headerlink" href="#from-source" title="Link to this heading"></a></h2>
+<p>Alternatively, you can install it directly from the repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/luksgrin/PyEvoMotion
+<span class="nb">cd</span><span class="w"> </span>PyEvoMotion
+pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+</section>
+<section id="verification">
+<h2>Verification<a class="headerlink" href="#verification" title="Link to this heading"></a></h2>
 <p>To check if the installation was successful, you can run the following command:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>PyEvoMotion
 </pre></div>
@@ -103,7 +129,7 @@ python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </s
 <span class="w">      </span>__/<span class="w"> </span><span class="p">|</span>
 <span class="w">      </span><span class="p">|</span>___/
 
-usage:<span class="w"> </span>PyEvoMotion<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span><span class="o">[</span>-dt<span class="w"> </span>DELTA_T<span class="o">]</span><span class="w"> </span><span class="o">[</span>-sh<span class="o">]</span><span class="w"> </span><span class="o">[</span>-ep<span class="o">]</span><span class="w"> </span><span class="o">[</span>-l<span class="w"> </span>LENGTH_FILTER<span class="o">]</span><span class="w"> </span><span class="o">[</span>-n<span class="w"> </span>N_THRESHOLD<span class="o">]</span><span class="w"> </span><span class="o">[</span>-xj<span class="o">]</span><span class="w"> </span><span class="o">[</span>-ij<span class="w"> </span>IMPORT_JSON<span class="o">]</span><span class="w"> </span><span class="o">[</span>-k<span class="w"> </span><span class="o">{</span>all,total,substitutions,insertions,deletions,indels<span class="o">}]</span><span class="w"> </span><span class="o">[</span>-f<span class="w"> </span>FILTER<span class="w"> </span><span class="o">[</span>FILTER<span class="w"> </span>...<span class="o">]]</span><span class="w"> </span><span class="o">[</span>-gp<span class="w"> </span>GENOME_POSITIONS<span class="o">]</span><span class="w"> </span><span class="o">[</span>-dr<span class="w"> </span>DATE_RANGE<span class="o">]</span><span class="w"> </span>seqs<span class="w"> </span>meta<span class="w"> </span>out
+usage:<span class="w"> </span>PyEvoMotion<span class="w"> </span><span class="o">[</span>-h<span class="o">]</span><span class="w"> </span><span class="o">[</span>-dt<span class="w"> </span>DELTA_T<span class="o">]</span><span class="w"> </span><span class="o">[</span>-sh<span class="o">]</span><span class="w"> </span><span class="o">[</span>-ep<span class="o">]</span><span class="w"> </span><span class="o">[</span>-l<span class="w"> </span>LENGTH_FILTER<span class="o">]</span><span class="w"> </span><span class="o">[</span>-xj<span class="o">]</span><span class="w"> </span><span class="o">[</span>-ij<span class="w"> </span>IMPORT_JSON<span class="o">]</span><span class="w"> </span><span class="o">[</span>-k<span class="w"> </span><span class="o">{</span>all,total,substitutions,insertions,deletions,indels<span class="o">}]</span><span class="w"> </span><span class="o">[</span>-f<span class="w"> </span>FILTER<span class="w"> </span><span class="o">[</span>FILTER<span class="w"> </span>...<span class="o">]]</span><span class="w"> </span><span class="o">[</span>-gp<span class="w"> </span>GENOME_POSITIONS<span class="o">]</span><span class="w"> </span><span class="o">[</span>-dr<span class="w"> </span>DATE_RANGE<span class="o">]</span><span class="w"> </span>seqs<span class="w"> </span>meta<span class="w"> </span>out
 
 PyEvoMotion
 
@@ -120,12 +146,10 @@ options:
 -ep,<span class="w"> </span>--export_plots<span class="w">   </span>Export<span class="w"> </span>the<span class="w"> </span>plots<span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>analysis.
 -l<span class="w"> </span>LENGTH_FILTER,<span class="w"> </span>--length_filter<span class="w"> </span>LENGTH_FILTER
 <span class="w">                        </span>Length<span class="w"> </span>filter<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>sequences<span class="w"> </span><span class="o">(</span>removes<span class="w"> </span>sequences<span class="w"> </span>with<span class="w"> </span>length<span class="w"> </span>less<span class="w"> </span>than<span class="w"> </span>the<span class="w"> </span>specified<span class="w"> </span>value<span class="o">)</span>.<span class="w"> </span>Default<span class="w"> </span>is<span class="w"> </span><span class="m">0</span>.
--n<span class="w"> </span>N_THRESHOLD,<span class="w"> </span>--n_threshold<span class="w"> </span>N_THRESHOLD
-<span class="w">                        </span>Minimum<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>sequences<span class="w"> </span>required<span class="w"> </span><span class="k">in</span><span class="w"> </span>a<span class="w"> </span><span class="nb">time</span><span class="w"> </span>interval<span class="w"> </span>to<span class="w"> </span>compute<span class="w"> </span>statistics.<span class="w"> </span>Default<span class="w"> </span>is<span class="w"> </span><span class="m">2</span>.
 -xj,<span class="w"> </span>--export_json<span class="w">    </span>Export<span class="w"> </span>the<span class="w"> </span>run<span class="w"> </span>arguments<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>json<span class="w"> </span>file.
 -ij<span class="w"> </span>IMPORT_JSON,<span class="w"> </span>--import_json<span class="w"> </span>IMPORT_JSON
 <span class="w">                        </span>Import<span class="w"> </span>the<span class="w"> </span>run<span class="w"> </span>arguments<span class="w"> </span>from<span class="w"> </span>a<span class="w"> </span>JSON<span class="w"> </span>file.<span class="w"> </span>If<span class="w"> </span>this<span class="w"> </span>argument<span class="w"> </span>is<span class="w"> </span>passed,<span class="w"> </span>the<span class="w"> </span>other<span class="w"> </span>arguments<span class="w"> </span>are<span class="w"> </span>ignored.<span class="w"> </span>The<span class="w"> </span>JSON<span class="w"> </span>file<span class="w"> </span>must<span class="w"> </span>contain<span class="w"> </span>the<span class="w"> </span>mandatory<span class="w"> </span>keys<span class="w"> </span><span class="s1">&#39;seqs&#39;</span>,<span class="w"> </span><span class="s1">&#39;meta&#39;</span>,<span class="w"> </span>and<span class="w"> </span><span class="s1">&#39;out&#39;</span>.
--k<span class="w"> </span><span class="o">{</span>all,total,substitutions,insertions,deletions,indels<span class="o">}</span>,<span class="w"> </span>--kind<span class="w"> </span><span class="o">{</span>all,total,substitutions,insertions,deletions,indels<span class="o">}</span>
+-k<span class="w"> </span><span class="o">{</span>all,total,substitutions,indels<span class="o">}</span>,<span class="w"> </span>--kind<span class="w"> </span><span class="o">{</span>all,total,substitutions,indels<span class="o">}</span>
 <span class="w">                        </span>Kind<span class="w"> </span>of<span class="w"> </span>mutations<span class="w"> </span>to<span class="w"> </span>consider<span class="w"> </span><span class="k">for</span><span class="w"> </span>the<span class="w"> </span>analysis.<span class="w"> </span>Default<span class="w"> </span>is<span class="w"> </span><span class="s1">&#39;all&#39;</span>.
 -f<span class="w"> </span>FILTER<span class="w"> </span><span class="o">[</span>FILTER<span class="w"> </span>...<span class="o">]</span>,<span class="w"> </span>--filter<span class="w"> </span>FILTER<span class="w"> </span><span class="o">[</span>FILTER<span class="w"> </span>...<span class="o">]</span>
 <span class="w">                        </span>Specify<span class="w"> </span>filters<span class="w"> </span>to<span class="w"> </span>be<span class="w"> </span>applied<span class="w"> </span>on<span class="w"> </span>the<span class="w"> </span>data<span class="w"> </span>with<span class="w"> </span>keys<span class="w"> </span>followed<span class="w"> </span>by<span class="w"> </span>values.<span class="w"> </span>If<span class="w"> </span>the<span class="w"> </span>values<span class="w"> </span>are<span class="w"> </span>multiple,<span class="w"> </span>they<span class="w"> </span>must<span class="w"> </span>be<span class="w"> </span>enclosed<span class="w"> </span><span class="k">in</span><span class="w"> </span>square<span class="w"> </span>brackets.<span class="w"> </span>Example:<span class="w"> </span>--filter<span class="w"> </span>key1<span class="w"> </span>value1<span class="w"> </span>key2<span class="w"> </span><span class="o">[</span>value2<span class="w"> </span>value3<span class="o">]</span><span class="w"> </span>key3<span class="w"> </span>value4.<span class="w"> </span>If<span class="w"> </span>either<span class="w"> </span>the<span class="w"> </span>keys<span class="w"> </span>or<span class="w"> </span>values
@@ -141,13 +165,81 @@ Error:<span class="w"> </span>the<span class="w"> </span>following<span class="w
 </pre></div>
 </div>
 </section>
+<section id="running-tests">
+<h2>Running Tests<a class="headerlink" href="#running-tests" title="Link to this heading"></a></h2>
+<p>This package has been developed using <code class="docutils literal notranslate"><span class="pre">pytest</span></code> for testing. To run the tests, you may install PyEvoMotion from the <code class="docutils literal notranslate"><span class="pre">sdist</span></code> archive, decompress it, install it and run the tests:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>download<span class="w"> </span>--no-deps<span class="w"> </span>--no-binary<span class="w"> </span>:all:<span class="w"> </span>PyEvoMotion
+tar<span class="w"> </span>-xvzf<span class="w"> </span>pyevomotion-*.tar.gz
+<span class="nb">cd</span><span class="w"> </span>pyevomotion-*/
+pip<span class="w"> </span>install<span class="w"> </span>.
+PyEvoMotion<span class="w"> </span><span class="c1"># To trigger mafft installation. Ensure afterwards that mafft is available in your PATH.</span>
+pytest
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The first time the tests are run, they will automatically download the test data from <code class="docutils literal notranslate"><span class="pre">https://sourceforge.net/projects/pyevomotion/files/test_data.zip/download</span></code> and extract it in the appropriate directory.</p>
+<p>Given the size of the test data, this may take a while.</p>
+</div>
+</section>
+<section id="docker-installation">
+<h2>Docker Installation<a class="headerlink" href="#docker-installation" title="Link to this heading"></a></h2>
+<p>A Docker image containing a virtual environment with <code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code> pre-installed, its dependencies, and the test data is available.</p>
+<p>Pull the image from GitHub Container Registry:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>ghcr.io/luksgrin/pyevomotion:latest
+</pre></div>
+</div>
+<p>Alternatively, to build the main image, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>ghcr.io/luksgrin/pyevomotion:latest<span class="w"> </span>-f<span class="w"> </span>docker/Dockerfile
+</pre></div>
+</div>
+<section id="running-the-container">
+<h3>Running the Container<a class="headerlink" href="#running-the-container" title="Link to this heading"></a></h3>
+<p>To start an interactive container:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>ghcr.io/luksgrin/pyevomotion:latest
+</pre></div>
+</div>
+<p>This will open a prompt that displays a welcome message and allows you to start using <code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code> right away.</p>
+</section>
+<section id="included-data-in-docker">
+<h3>Included Data in Docker<a class="headerlink" href="#included-data-in-docker" title="Link to this heading"></a></h3>
+<p>The image includes input files (<code class="docutils literal notranslate"><span class="pre">FASTA</span></code> and metadata) in:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>/home/pyevomotion/pyevomotion-*/tests/data/test3
+</pre></div>
+</div>
+<p>which are used by the test suite.</p>
+<p>Also, the source script for figure generation (along with the pre-generated results of running <code class="docutils literal notranslate"><span class="pre">PyEvoMotion</span></code>) is available under:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>/home/pyevomotion/pyevomotion-*/share
+</pre></div>
+</div>
+</section>
+<section id="running-tests-in-docker">
+<h3>Running Tests in Docker<a class="headerlink" href="#running-tests-in-docker" title="Link to this heading"></a></h3>
+<p>Once inside the container, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>pyevomotion-*
+pytest
+</pre></div>
+</div>
+<p>This will execute the test suite included with the source.</p>
+</section>
+<section id="reproducing-the-figure-from-the-original-manuscript">
+<h3>Reproducing the Figure from the Original Manuscript<a class="headerlink" href="#reproducing-the-figure-from-the-original-manuscript" title="Link to this heading"></a></h3>
+<p>To reproduce the figure from the original manuscript, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>pyevomotion-*
+python<span class="w"> </span>share/manuscript_figure.py<span class="w"> </span><span class="nb">export</span>
+</pre></div>
+</div>
+<p>The figure will be saved in the <code class="docutils literal notranslate"><span class="pre">share</span></code> directory.</p>
+</section>
+</section>
+</section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="overview.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="modules.html" class="btn btn-neutral float-right" title="PyEvoMotion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="usage_guide.html" class="btn btn-neutral float-right" title="Usage Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

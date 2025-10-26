@@ -8,8 +8,12 @@ PyEvoMotion documentation
 
 Welcome to PyEvoMotion's documentation.
 
+PyEvoMotion is a Python tool designed to assess the evolutionary dynamics of related DNA sequences. It allows researchers to analyze how mutations accumulate over time and determine whether the evolution follows standard diffusion or anomalous diffusion models.
 
-For the context of this software, check out the :ref:`overview` section.
+For a quick overview of the project, check out the :ref:`overview` section.
+
+For getting started with PyEvoMotion, see the :ref:`usage_guide` section.
+
 
 Indices and tables
 ------------------
@@ -24,5 +28,6 @@ Indices and tables
 
    overview
    installation
+   usage_guide
    modules
 

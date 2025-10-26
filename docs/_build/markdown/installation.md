@@ -1,19 +1,33 @@
+<a id="installation"></a>
+
 # Installation
 
 #### NOTE
-`PyEvoMotion` uses [mafft](https://mafft.cbrc.jp/alignment/software/) to do the sequence alignment. If it’s not available in your system, the installation script will install it locally.
+`PyEvoMotion` uses [mafft](https://mafft.cbrc.jp/alignment/software/) to do the sequence alignment. If it’s not available in your system, on the first run of `PyEvoMotion`, it will ask to install it locally.
 
 If so, ensure to restart your shell session or run `source ~/.bashrc` to update the PATH environment variable, so that the `mafft` executable is available in your shell.
 
-To install `PyEvoMotion` you must clone the repository and run the installation script:
+## From PyPI
+
+The simplest way to install PyEvoMotion is from PyPI:
+
+```bash
+pip install PyEvoMotion
+```
+
+This will install the package and its dependencies  *(but not the tests nor the test data)*.
+
+## From Source
+
+Alternatively, you can install it directly from the repository:
 
 ```bash
 git clone https://github.com/luksgrin/PyEvoMotion
 cd PyEvoMotion
-python3 -m pip install .
+pip install .
 ```
 
-This will install the package and its dependencies.
+## Verification
 
 To check if the installation was successful, you can run the following command:
 
@@ -34,7 +48,7 @@ _____       ______          __  __       _   _
       __/ |
       |___/
 
-usage: PyEvoMotion [-h] [-dt DELTA_T] [-sh] [-ep] [-l LENGTH_FILTER] [-n N_THRESHOLD] [-xj] [-ij IMPORT_JSON] [-k {all,total,substitutions,insertions,deletions,indels}] [-f FILTER [FILTER ...]] [-gp GENOME_POSITIONS] [-dr DATE_RANGE] seqs meta out
+usage: PyEvoMotion [-h] [-dt DELTA_T] [-sh] [-ep] [-l LENGTH_FILTER] [-xj] [-ij IMPORT_JSON] [-k {all,total,substitutions,insertions,deletions,indels}] [-f FILTER [FILTER ...]] [-gp GENOME_POSITIONS] [-dr DATE_RANGE] seqs meta out
 
 PyEvoMotion
 
@@ -51,12 +65,10 @@ options:
 -ep, --export_plots   Export the plots of the analysis.
 -l LENGTH_FILTER, --length_filter LENGTH_FILTER
                         Length filter for the sequences (removes sequences with length less than the specified value). Default is 0.
--n N_THRESHOLD, --n_threshold N_THRESHOLD
-                        Minimum number of sequences required in a time interval to compute statistics. Default is 2.
 -xj, --export_json    Export the run arguments to a json file.
 -ij IMPORT_JSON, --import_json IMPORT_JSON
                         Import the run arguments from a JSON file. If this argument is passed, the other arguments are ignored. The JSON file must contain the mandatory keys 'seqs', 'meta', and 'out'.
--k {all,total,substitutions,insertions,deletions,indels}, --kind {all,total,substitutions,insertions,deletions,indels}
+-k {all,total,substitutions,indels}, --kind {all,total,substitutions,indels}
                         Kind of mutations to consider for the analysis. Default is 'all'.
 -f FILTER [FILTER ...], --filter FILTER [FILTER ...]
                         Specify filters to be applied on the data with keys followed by values. If the values are multiple, they must be enclosed in square brackets. Example: --filter key1 value1 key2 [value2 value3] key3 value4. If either the keys or values
@@ -70,3 +82,85 @@ options:
 
 Error: the following arguments are required: seqs, meta, out
 ```
+
+## Running Tests
+
+This package has been developed using `pytest` for testing. To run the tests, you may install PyEvoMotion from the `sdist` archive, decompress it, install it and run the tests:
+
+```bash
+pip download --no-deps --no-binary :all: PyEvoMotion
+tar -xvzf pyevomotion-*.tar.gz
+cd pyevomotion-*/
+pip install .
+PyEvoMotion # To trigger mafft installation. Ensure afterwards that mafft is available in your PATH.
+pytest
+```
+
+#### WARNING
+The first time the tests are run, they will automatically download the test data from `https://sourceforge.net/projects/pyevomotion/files/test_data.zip/download` and extract it in the appropriate directory.
+
+Given the size of the test data, this may take a while.
+
+## Docker Installation
+
+A Docker image containing a virtual environment with `PyEvoMotion` pre-installed, its dependencies, and the test data is available.
+
+Pull the image from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/luksgrin/pyevomotion:latest
+```
+
+Alternatively, to build the main image, run:
+
+```bash
+docker build -t ghcr.io/luksgrin/pyevomotion:latest -f docker/Dockerfile
+```
+
+### Running the Container
+
+To start an interactive container:
+
+```bash
+docker run -it ghcr.io/luksgrin/pyevomotion:latest
+```
+
+This will open a prompt that displays a welcome message and allows you to start using `PyEvoMotion` right away.
+
+### Included Data in Docker
+
+The image includes input files (`FASTA` and metadata) in:
+
+```bash
+/home/pyevomotion/pyevomotion-*/tests/data/test3
+```
+
+which are used by the test suite.
+
+Also, the source script for figure generation (along with the pre-generated results of running `PyEvoMotion`) is available under:
+
+```bash
+/home/pyevomotion/pyevomotion-*/share
+```
+
+### Running Tests in Docker
+
+Once inside the container, run:
+
+```bash
+cd pyevomotion-*
+pytest
+```
+
+This will execute the test suite included with the source.
+
+### Reproducing the Figure from the Original Manuscript
+
+To reproduce the figure from the original manuscript, run:
+
+```bash
+cd pyevomotion-*
+python share/manuscript_figure.py export
+```
+
+The figure will be saved in the `share` directory.
