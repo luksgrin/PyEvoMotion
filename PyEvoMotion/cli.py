@@ -249,6 +249,13 @@ def _parse_arguments() -> argparse.Namespace:
         help="Export the plots of the analysis."
     )
     parser.add_argument(
+        "-cl",
+        "--confidence_level",
+        type=float,
+        default=0.95,
+        help="Confidence level for parameter confidence intervals (default 0.95 for 95%% CI). Must be between 0 and 1."
+    )
+    parser.add_argument(
         "-l",
         "--length_filter",
         type=int,
@@ -357,6 +364,73 @@ def _simple_serializer(k: str, v: any) -> any:
         return "..".join(map(lambda x: x.strftime("%Y-%m-%d") if x else "", v))
     return v
 
+def _remove_model_functions(obj):
+    """Recursively remove 'model' keys containing lambda functions from nested dictionaries.
+    
+    :param obj: Dictionary or other object to clean
+    :type obj: any
+    :return: Cleaned object with model functions removed
+    :rtype: any
+    """
+    if isinstance(obj, dict):
+        # Create a copy to avoid modifying during iteration
+        cleaned_obj = {}
+        for key, value in obj.items():
+            if key == "model":
+                # Skip lambda model functions - they can't be serialized to JSON
+                continue
+            elif isinstance(value, dict):
+                # Recursively clean nested dictionaries
+                cleaned_obj[key] = _remove_model_functions(value)
+            else:
+                # Keep all other values
+                cleaned_obj[key] = value
+        return cleaned_obj
+    else:
+        return obj
+
+def _restructure_regression_results(reg_results):
+    """Restructure regression results for cleaner JSON export format.
+    
+    :param reg_results: Raw regression results from analysis
+    :type reg_results: dict
+    :return: Restructured results with cleaner format
+    :rtype: dict
+    """
+    restructured = {}
+    
+    for key, value in reg_results.items():
+        if key.endswith("_full_results"):
+            # Extract the base name (remove _full_results suffix)
+            base_name = key.replace("_full_results", "")
+            
+            # Create the new structure with only essential fields
+            restructured[base_name] = {
+                "linear_model": {
+                    "parameters": value["linear_model"]["parameters"],
+                    "confidence_intervals": value["linear_model"]["confidence_intervals"],
+                    "expression": value["linear_model"]["expression"], 
+                    "r2": value["linear_model"]["r2"],
+                    "confidence_level": value["linear_model"]["confidence_level"]
+                },
+                "power_law_model": {
+                    "parameters": value["power_law_model"]["parameters"],
+                    "confidence_intervals": value["power_law_model"]["confidence_intervals"],
+                    "expression": value["power_law_model"]["expression"],
+                    "r2": value["power_law_model"]["r2"],
+                    "confidence_level": value["power_law_model"]["confidence_level"]
+                },
+                "model_selection": value["model_selection"]
+            }
+        else:
+            # Keep non-full-results entries as-is (backward compatibility models)
+            # But skip them if there's a corresponding _full_results entry
+            full_results_key = f"{key}_full_results"
+            if full_results_key not in reg_results:
+                restructured[key] = value
+    
+    return restructured
+
 def _main():
     check_and_install_mafft()
     """
@@ -366,6 +440,11 @@ def _main():
     """
     print(BANNER)
     args = _parse_arguments()
+
+    # Validate confidence level
+    if not (0 < args.confidence_level < 1):
+        parser = _ArgumentParserWithHelpOnError(description=PACKAGE_DESCRIPTION)
+        parser.error("Confidence level must be between 0 and 1 (exclusive)")
 
     # If the -xj argument is passed, the arguments are exported to a JSON file before running the analysis altogether
     if args.export_json:
@@ -406,13 +485,18 @@ def _main():
             f"{args.out}_plots"
             if args.export_plots
             else None
-        )
+        ),
+        confidence_level=args.confidence_level
     )
 
     _reg = reg.copy()
 
-    for k in _reg.keys():
-        del _reg[k]["model"]
+    # First restructure the results to the desired export format
+    _reg = _restructure_regression_results(_reg)
+    
+    # Then apply the cleaning function to remove lambda functions
+    for k in list(_reg.keys()):
+        _reg[k] = _remove_model_functions(_reg[k])
 
     # Exports the statistic results to TSV file
     stats.to_csv(

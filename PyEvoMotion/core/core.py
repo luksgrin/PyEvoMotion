@@ -404,8 +404,8 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         if len(_filtered) == 0:
             raise ValueError(
                 f"No groups with at least 2 observations. Consider widening the time interval."
-             )
- 
+            )
+
         grouped = self.date_grouper(
             _filtered,
             DT,
@@ -433,7 +433,8 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         length: int,
         show: bool = False,
         mutation_kind: str = "all",
-        export_plots_filename: str | None = None
+        export_plots_filename: str | None = None,
+        confidence_level: float = 0.95
     ) -> tuple[pd.DataFrame, dict[str,dict[str,any]]]:
         """
         Perform the global analysis of the data.
@@ -446,8 +447,10 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         :type show: bool
         :param mutation_kind: The kind of mutation to compute the statistics for. Has to be one of ``all``, ``total``, ``substitutions`` or ``indels``. Default is ``all``.
         :type mutation_kind: str
-        :param export_plots: Filename to export the plots. Default is None and does not export the plots.
-        :type export_plots: str | None
+        :param export_plots_filename: Filename to export the plots. Default is None and does not export the plots.
+        :type export_plots_filename: str | None
+        :param confidence_level: Confidence level for parameter confidence intervals (default 0.95 for 95% CI).
+        :type confidence_level: float
         :return: The statistics and the regression models.
         :rtype: ``tuple[pd.DataFrame, dict[str, dict[str, any]]]``
         """
@@ -476,40 +479,49 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
                             stats.index, # Regression is given by the index, so in time, it is the same as multiplying by dt days
                             stats[col],
                             weights
-                        )
+                        ),
+                        confidence_level=confidence_level
                     )
                 }
             elif col.startswith("var"):
-                _single_regression = self.adjust_model(
+                _adjust_result = self.adjust_model(
                     stats.index,
                     stats[col] - stats[col].min(),
                     name=f"scaled {col} model",
-                    weights=weights.to_numpy().flatten()
+                    weights=weights.to_numpy().flatten(),
+                    confidence_level=confidence_level
                 )
+                # Extract the selected model for backward compatibility while preserving all model info
+                model_name = f"scaled {col} model"
+                full_result = _adjust_result[model_name]
+                selected_model = full_result["selected_model"]
+                
+                # Store both the selected model (for backward compatibility) and full results
+                _single_regression = {
+                    model_name: selected_model,
+                    f"{model_name}_full_results": full_result
+                }
             # Save the regression model
             regs.update(_single_regression)
 
         # Add scaling correction to the regression models
         for k, v in regs.items():
-            if v["expression"] == "mx + b":
-                m = v["parameters"]["m"]
-                b = v["parameters"]["b"]
-                regs[k]["parameters"]["m"] = m/self.dt_ratio
-                m = regs[k]["parameters"]["m"]
-                regs[k]["model"] = lambda x: m*x + b
-            elif v["expression"] == "mx":
-                m = v["parameters"]["m"]
-                regs[k]["parameters"]["m"] = m/self.dt_ratio
-                m = regs[k]["parameters"]["m"]
-                regs[k]["model"] = lambda x: m*x
-
-            elif v["expression"] == "d*x^alpha":
-                d = v["parameters"]["d"]
-                alpha = v["parameters"]["alpha"]
-                regs[k]["parameters"]["d"] = d/(self.dt_ratio**alpha)
-                d = regs[k]["parameters"]["d"]
-                regs[k]["model"] = lambda x: d*(x**alpha)
-
+            # Skip full results entries - we'll handle them separately
+            if k.endswith("_full_results"):
+                continue
+            
+            # Use the helper method for scaling correction
+            self._apply_scaling_correction_to_model(v)
+        
+        # Apply scaling correction to all models in full results
+        for k, v in regs.items():
+            if k.endswith("_full_results"):
+                # Apply scaling to selected model
+                self._apply_scaling_correction_to_model(v["selected_model"])
+                # Apply scaling to linear model
+                self._apply_scaling_correction_to_model(v["linear_model"])
+                # Apply scaling to power law model  
+                self._apply_scaling_correction_to_model(v["power_law_model"])
 
         # Sets of mutation types used in the analysis
         _sets = sorted({
@@ -536,6 +548,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
                     "wk",
                     self.dt_ratio
                 )
+
         # Export the plots
         if export_plots_filename:
             # Open pdf file pointer
@@ -560,3 +573,41 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             pdf.close()
 
         return stats, regs
+
+    def _apply_scaling_correction_to_model(self, model: dict[str, any]) -> None:
+        """Apply scaling correction to a single model dictionary.
+        
+        :param model: The model dictionary to apply scaling correction to
+        :type model: dict[str, any]
+        """
+        if model["expression"] == "mx + b":
+            m = model["parameters"]["m"]
+            b = model["parameters"]["b"]
+            model["parameters"]["m"] = m/self.dt_ratio
+            m = model["parameters"]["m"]
+            model["model"] = lambda x: m*x + b
+            # Update confidence intervals to match scaled parameters
+            if "confidence_intervals" in model:
+                m_ci_lower, m_ci_upper = model["confidence_intervals"]["m"]
+                model["confidence_intervals"]["m"] = (m_ci_lower/self.dt_ratio, m_ci_upper/self.dt_ratio)
+        elif model["expression"] == "mx":
+            m = model["parameters"]["m"]
+            model["parameters"]["m"] = m/self.dt_ratio
+            m = model["parameters"]["m"]
+            model["model"] = lambda x: m*x
+            # Update confidence intervals to match scaled parameters
+            if "confidence_intervals" in model:
+                m_ci_lower, m_ci_upper = model["confidence_intervals"]["m"]
+                model["confidence_intervals"]["m"] = (m_ci_lower/self.dt_ratio, m_ci_upper/self.dt_ratio)
+        elif model["expression"] == "d*x^alpha":
+            d = model["parameters"]["d"]
+            alpha = model["parameters"]["alpha"]
+            model["parameters"]["d"] = d/(self.dt_ratio**alpha)
+            d = model["parameters"]["d"]
+            model["model"] = lambda x: d*(x**alpha)
+            # Update confidence intervals to match scaled parameters
+            if "confidence_intervals" in model:
+                d_ci_lower, d_ci_upper = model["confidence_intervals"]["d"]
+                model["confidence_intervals"]["d"] = (d_ci_lower/(self.dt_ratio**alpha), d_ci_upper/(self.dt_ratio**alpha))
+
+
