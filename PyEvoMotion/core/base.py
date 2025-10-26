@@ -296,6 +296,10 @@ class PyEvoMotionBase():
     def power_law_fit(cls, x: np.ndarray, y: np.ndarray, weights: np.ndarray | None = None, confidence_level: float = 0.95) -> dict[str, any]:
         """
         Perform a power law fit on a set of data.
+        
+        This method fits a power law model of the form :math:`y = d \\cdot x^{\\alpha}` to the data.
+        Initial parameter estimates are obtained via linear regression on log-transformed data,
+        which provides better convergence than default initialization.
 
         :param x: A numpy array of the features.
         :type x: np.ndarray
@@ -308,10 +312,11 @@ class PyEvoMotionBase():
         :return: A dictionary containing:
 
             * ``model``: A ``lambda`` function that computes predictions based on the fitted model.
-            * ``parameters``: A dictionary with the parameters of the fitted power law.
+            * ``parameters``: A dictionary with the parameters of the fitted power law (``d`` and ``alpha``).
             * ``confidence_intervals``: A dictionary with confidence intervals for each parameter.
             * ``expression``: A string representation of the regression equation.
             * ``r2``: The :math:`R^2` score of the regression.
+            * ``confidence_level``: The confidence level used for the confidence intervals.
         :rtype: ``dict[str, any]``
         """
 

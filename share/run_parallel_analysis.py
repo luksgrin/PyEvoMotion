@@ -24,15 +24,16 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 def run_analysis(country: str, run_number: int, base_output_dir: Path) -> tuple[str, int, bool]:
     """
-    Run a single PyEvoMotion analysis.
+    Run a single PyEvoMotion analysis for UK or USA dataset.
     
-    Args:
-        country: Either "UK" or "USA"
-        run_number: The run number (1-5)
-        base_output_dir: Base directory for output files
-        
-    Returns:
-        Tuple of (country, run_number, success_status)
+    :param country: Either "UK" or "USA"
+    :type country: str
+    :param run_number: The run number for this batch
+    :type run_number: int
+    :param base_output_dir: Base directory for output files
+    :type base_output_dir: Path
+    :return: Tuple of (country, run_number, success_status)
+    :rtype: tuple[str, int, bool]
     """
     # Create output directory for this specific run
     output_dir = base_output_dir / f"{country}_run{run_number}"
@@ -99,7 +100,13 @@ def run_analysis(country: str, run_number: int, base_output_dir: Path) -> tuple[
 
 
 def main():
-    """Main execution function."""
+    """
+    Main execution function for parallel batch analysis.
+    
+    Runs UK and USA PyEvoMotion analyses multiple times in parallel to assess
+    reproducibility. Results are saved to batch subdirectories with configurable
+    parallelism and run counts via command line arguments.
+    """
     
     # Parse command line arguments
     batch_name = sys.argv[1] if len(sys.argv) > 1 else "batch1"

@@ -25,13 +25,14 @@ def run_single_test(dataset_type: str, dataset_num: str, timestamp: str) -> tupl
     """
     Run a single PyEvoMotion test on a synthetic dataset.
     
-    Args:
-        dataset_type: Either "linear" or "powerlaw"
-        dataset_num: Dataset number (formatted as "01", "02", etc.)
-        timestamp: Timestamp for organizing output
-        
-    Returns:
-        Tuple of (dataset_type, dataset_num, success_status)
+    :param dataset_type: Either "linear" or "powerlaw"
+    :type dataset_type: str
+    :param dataset_num: Dataset number (formatted as "01", "02", etc.)
+    :type dataset_num: str
+    :param timestamp: Timestamp for organizing output directories
+    :type timestamp: str
+    :return: Tuple of (dataset_type, dataset_num, success_status)
+    :rtype: tuple[str, str, bool]
     """
     
     # Paths
@@ -100,7 +101,13 @@ def run_single_test(dataset_type: str, dataset_num: str, timestamp: str) -> tupl
 
 
 def main():
-    """Main execution function."""
+    """
+    Main execution function for parallel test5 dataset analysis.
+    
+    Runs all linear and powerlaw synthetic dataset tests in parallel using PyEvoMotion.
+    Results are saved to timestamped subdirectories for each dataset.
+    Command line arguments allow control over the number of parallel workers.
+    """
     
     # Parse command line arguments
     max_workers = int(sys.argv[1]) if len(sys.argv) > 1 else os.cpu_count()
