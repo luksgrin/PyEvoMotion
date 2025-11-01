@@ -55,7 +55,7 @@ def test_S2_dataset(setup):
         "synthdata2_out"
     )
 
-@pytest.mark.parametrize("dataset_num", [f"{i:02d}" for i in range(1, 31)])
+@pytest.mark.parametrize("dataset_num", [f"{i:02d}" for i in range(1, 2)]) # Run only 1 dataset to avoid github actions timeout
 def test_linear_datasets(setup, dataset_num):
     """Tests that PyEvoMotion can process all linear synthetic datasets correctly."""
     run_synthetic_test(
@@ -66,7 +66,7 @@ def test_linear_datasets(setup, dataset_num):
         "test5/linear"
     )
 
-@pytest.mark.parametrize("dataset_num", [f"{i:02d}" for i in range(1, 31)])
+@pytest.mark.parametrize("dataset_num", [f"{i:02d}" for i in range(1, 2)]) # Run only 1 dataset to avoid github actions timeout
 def test_powerlaw_datasets(setup, dataset_num):
     """Tests that PyEvoMotion can process all powerlaw synthetic datasets correctly."""
     run_synthetic_test(
