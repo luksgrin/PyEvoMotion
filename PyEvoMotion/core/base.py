@@ -338,12 +338,12 @@ class PyEvoMotionBase():
             p0 = [np.exp(reg.intercept_[0]), reg.coef_[0][0]]  # [d, alpha]
         else:
             p0 = [1.0, 1.0]  # Default fallback
-        
+
         # Set reasonable bounds for power law parameters
         # d > 0 (coefficient must be positive)
         # alpha can be any real number, but constrain to reasonable range
         bounds = ([1e-10, -10], [np.inf, 10])  # [d_min, alpha_min], [d_max, alpha_max]
-        
+
         try:
             _popt, _pcov, _, _msg, _ier = curve_fit(
                 cls._power_law,
@@ -357,6 +357,19 @@ class PyEvoMotionBase():
             _ier = 0
             _msg = str(e)
             _pcov = np.array([[np.inf, 0], [0, np.inf]])
+        except ValueError as e: # If the initial point breaks the algorithm, try again with a default initial point
+            if "Residuals are not finite in the initial point" in str(e):
+                p0 = [1.0, 1.0]
+                _popt, _pcov, _, _msg, _ier = curve_fit(
+                    cls._power_law,
+                    x_flat, y_flat,
+                    p0=p0,
+                    bounds=bounds,
+                    sigma=1/np.sqrt(_weights) if _weights is not None else None,
+                    full_output=True
+                )
+            else:
+                raise e
 
         if _ier not in range(1, 5):
             print(f"{_msg}")
