@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "PyEvoMotion"
-version = "0.1.2"
+version = "0.1.3"
 description = "Evolutionary motion analysis tool"
 authors = ["Lucas Goiriz <lucas.goiriz@csic.es>"]
 readme = "README.md"
