@@ -422,6 +422,35 @@ def anomalous_diffusion_plot(export: bool = False, show: bool = True) -> None:
 
     if show: plt.show()
 
+def hyperbolic_tangent_plot(export: bool = False, show: bool = True) -> None:
+    """
+    Plot a hyperbolic tangent function scaled to go from 0 to 100.
+    """
+    set_matplotlib_global_params()
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+
+    x = np.linspace(0, 100, 60)
+    # Scale tanh from [-1, 1] to [0, 100]
+    y = np.tanh(x/15)
+
+    plt.plot(x, y, color=COLORS["UK"], linewidth=3)
+    
+    plt.xlabel("# sequences")
+    plt.ylabel("weight")
+
+    plt.xlim(0, 60)
+    plt.ylim(-0.01, 1.01)
+
+    if export:
+        fig.savefig(
+            "share/hyperbolic_tangent.pdf",
+            dpi=400,
+            bbox_inches="tight",
+        )
+        print("Figure saved as share/hyperbolic_tangent.pdf")
+
+    if show: plt.show()
+
 def check_synthetic_data_exists() -> bool:
     """
     Check if the synthetic data output files exist.
@@ -1060,6 +1089,8 @@ def create_confusion_matrix_plot(export: bool = False, show: bool = True) -> Non
 #.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•#
 
 def main(export: bool = False) -> None:
+
+    hyperbolic_tangent_plot(export=export)
 
     if not check_final_data_and_models_exist():
         print("Final data files do not exist. Creating them...")
