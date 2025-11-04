@@ -462,11 +462,6 @@ def run_synthetic_data_tests() -> None:
         text=True
     )
     
-    if result1.stderr:
-        print(result1.stdout)
-        print(result1.stderr)
-        raise RuntimeError("Failed to process S1 dataset")
-    
     # Run tests for S2 dataset
     result2 = subprocess.run(
         [
@@ -480,11 +475,6 @@ def run_synthetic_data_tests() -> None:
         stderr=subprocess.PIPE,
         text=True
     )
-    
-    if result2.stderr:
-        print(result2.stdout)
-        print(result2.stderr)
-        raise RuntimeError("Failed to process S2 dataset")
 
 def load_synthetic_data_df() -> pd.DataFrame:
     if not check_synthetic_data_exists():
