@@ -12,17 +12,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
-
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        run: uv python install 3.12
 
       - name: Install MAFFT locally
         run: |
@@ -34,13 +32,12 @@ jobs:
           which mafft
           mafft --version
 
-      - name: Install dependencies with Poetry
-        run: |
-          poetry install --with docs
+      - name: Install dependencies
+        run: uv sync --extra docs
 
       - name: Cache test data
         id: cache-data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: tests/data/test3/
           key: test-data-v1
@@ -53,9 +50,9 @@ jobs:
         if: steps.cache-data.outputs.cache-hit != 'true'
         run: |
           echo "Test data not found in cache — downloading..."
-          poetry run python -c "import tests.helpers.test_UK_USA_dataset_helpers as t; t.download_data_zip(); t.extract_data_zip();"
+          uv run python -c "import tests.helpers.test_UK_USA_dataset_helpers as t; t.download_data_zip(); t.extract_data_zip();"
 
       - name: Run tests with pytest
         run: |
           export PATH="$HOME/.local/bin:$PATH"
-          poetry run pytest -sv
+          uv run pytest -sv

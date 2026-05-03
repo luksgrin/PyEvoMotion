@@ -1,47 +1,74 @@
-[tool.poetry]
+[project]
 name = "PyEvoMotion"
 version = "0.1.3"
 description = "Evolutionary motion analysis tool"
-authors = ["Lucas Goiriz <lucas.goiriz@csic.es>"]
 readme = "README.md"
-packages = [{ include = "PyEvoMotion" }]
+requires-python = ">=3.12,<3.13"
+authors = [
+    { name = "Lucas Goiriz", email = "lucas.goiriz@csic.es" },
+]
 keywords = ["evolution", "anomalous diffusion", "bioinformatics"]
-include = [
-    { path = "share", format = "sdist" },
-    { path = "share", format = "wheel" },
-    { path = "tests/__init__.py", format = "sdist" },
-    { path = "tests/helpers", format = "sdist" },
-    { path = "tests/test*", format = "sdist" },
-    { path = "tests/data/test1", format = "sdist" },
-    { path = "tests/data/test2", format = "sdist" },
-    { path = "tests/data/test3/ids_sampled_for_figure.json", format = "sdist" },
+dependencies = [
+    "bio>=1.7.1,<2.0.0",
+    "matplotlib>=3.9.1,<4.0.0",
+    "pandas>=2.2.2,<3.0.0",
+    "pytest>=8.2.2,<9.0.0",
+    "scikit-learn>=1.5.1,<2.0.0",
 ]
 
-[tool.poetry.urls]
-"Homepage" = "https://luksgrin.github.io/PyEvoMotion/"
-"Repository" = "https://github.com/luksgrin/PyEvoMotion/"
+[project.optional-dependencies]
+docs = [
+    "sphinx>=8.0.2,<9.0.0",
+    "sphinx-markdown-builder>=0.6.6,<0.7.0",
+    "sphinx-rtd-theme>=3.0.2,<4.0.0",
+    "sphinxcontrib-bibtex>=2.6.3,<3.0.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.12,<3.13"
-pytest = "^8.2.2"
-bio = "^1.7.1"
-pandas = "^2.2.2"
-scikit-learn = "^1.5.1"
-matplotlib = "^3.9.1"
-twine = "^6.1.0"
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "^8.0.2"
-sphinx-markdown-builder = "^0.6.6"
-sphinx-rtd-theme = "^3.0.2"
-sphinxcontrib-bibtex = "^2.6.3"
-
-[tool.poetry.scripts]
+[project.scripts]
 PyEvoMotion = "PyEvoMotion.cli:_main"
 
+[project.urls]
+Homepage = "https://luksgrin.github.io/PyEvoMotion/"
+Repository = "https://github.com/luksgrin/PyEvoMotion/"
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# Files that must NEVER reach a published artifact (manuscript reviewer
+# materials and other private share/ items). Releases are built from the
+# `prod` branch where these don't exist; this list is defense in depth in
+# case someone accidentally builds from master.
+[tool.hatch.build]
+exclude = [
+    "share/REVIEWER_SIMULATION_REPORTING.md",
+    "share/analyze_test_runs.py",
+    "share/figure.eps",
+    "share/hyperbolic_tangent.pdf",
+    "share/simulation_figure.py",
+    "share/simulation_parameter_figure.pdf",
+    "share/test5_true_parameters.json",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "PyEvoMotion",
+    "share",
+    "tests/__init__.py",
+    "tests/helpers",
+    "tests/test_core.py",
+    "tests/test_parser.py",
+    "tests/test_synthetic_datasets.py",
+    "tests/test_UK_USA_dataset.py",
+    "tests/data/test1",
+    "tests/data/test2",
+    "tests/data/test3/ids_sampled_for_figure.json",
+    "README.md",
+    "pyproject.toml",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["PyEvoMotion"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"share" = "share"

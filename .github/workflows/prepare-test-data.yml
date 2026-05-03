@@ -9,28 +9,25 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
         with:
-          python-version: "3.12"
+          enable-cache: true
 
-      - name: Install Poetry
-        run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Set up Python 3.12
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: |
-          poetry install --with docs
+        run: uv sync --extra docs
 
       - name: Prepare test data
         run: |
-          poetry run python -c "import tests.helpers.test_UK_USA_dataset_helpers as t; t.download_data_zip(); t.extract_data_zip();"
+          uv run python -c "import tests.helpers.test_UK_USA_dataset_helpers as t; t.download_data_zip(); t.extract_data_zip();"
 
       - name: Cache test data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: tests/data/test3/
           key: test-data-v1
