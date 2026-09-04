@@ -41,7 +41,11 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         dt: str = "7D",
         filters: dict[str, list[str] | str] | None = None,
         positions: tuple[int] | None = None,
-        date_range: tuple[str] | None = None
+        date_range: tuple[str] | None = None,
+        refseq: str | None = None,
+        verbose: int = 0,
+        load_mutation_instructions: str | None = None,
+        recount_mutation_types: bool = False,
     ) -> None:
         """
         Initialize the class.
@@ -60,6 +64,14 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         :type positions: tuple[int] | None
         :param date_range: The date range to filter by. Default is None.
         :type date_range: tuple[str] | None
+        :param refseq: The path to the reference sequence FASTA file. Default is None, which means that the sequence with the earliest date will be used as reference.
+        :type refseq: str | None
+        :param verbose: The level of verbosity for logging messages. Default is 0.
+        :type verbose: int
+        :param load_mutation_instructions: The path to the TSV file containing previously determined mutation instructions. Default is None. input_fasta and input_meta arguments are ignored if this argument is provided.
+        :type load_mutation_instructions: str | None
+        :param recount_mutation_types: Whether to recount the number of substitutions and indels based on the loaded mutation instructions. Default is False.
+        :type recount_mutation_types: bool
         """
 
         self._verify_dt(dt)
@@ -72,7 +84,10 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             input_meta,
             filters if filters else {},
             positions if positions else (0, 0),
-            date_range
+            date_range,
+            refseq,
+            verbose=verbose,
+            load_mutation_instructions=load_mutation_instructions,
         )
 
         self._check_dataset_is_not_empty(
@@ -85,7 +100,14 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         if date_range:
             self.origin = min(self.origin, date_range[0]) if date_range[0] else self.origin
 
-        self.count_mutation_types()
+        failed = pd.isna(self.data['mutation instructions'])
+        if failed.any():
+            print(f"Warning: {failed.sum()} sequences have missing mutation instructions and will be excluded from the analysis.")
+            print(f"Example sequence ids with missing mutation instructions: {self.data[failed]['id'].tolist()[:10]}")
+            self.data = self.data[~failed]
+        if load_mutation_instructions is None or recount_mutation_types:
+            self.count_mutation_types()
+
 
     @classmethod
     def plot_results(cls,
@@ -182,7 +204,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         """
 
         pdf = output_ptr if output_ptr else PdfPages("output_plots.pdf")
-            
+
         plt.figure()
         # Mean
         _model = next(
@@ -254,7 +276,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
     def count_mutation_types(self) -> None:
         """
         Count the number of substitutions, insertions and deletions in the data.
-        
+
         It updates the ``data`` attribute by adding the columns ``number of substitutions``, ``number of indels`` and ``number of mutations``.
         """
 
@@ -288,7 +310,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             )
             + len(self.reference)
         )
-    
+
     def length_filter(self, length: int, how: str="gt") -> None:
         """
         Filter the data by sequence length.
@@ -309,15 +331,15 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             self.data[self.get_lengths() == length]
         else:
             raise ValueError(f"Filter \"{how}\" not recognized")
-        
+
         self.data.reset_index(drop=True, inplace=True)
-        
+
     def n_filter(self, threshold: float | int = 0.01, how: str = "lt") -> None:
         """
         Filter the data by the number of ``N`` in the sequence.
 
         It updates the ``data`` attribute by filtering the data by the number of ``N`` in the sequence.
-        
+
         :param threshold: The threshold to filter by. Must be between 0 and 1. Default is 0.01.
         :type threshold: float | int
         :param how: The filter condition. It can be ``gt`` (greater than), ``lt`` (less than) or ``eq`` (equal to).
@@ -337,9 +359,9 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             self.data[N_freq == threshold]
         else:
             raise ValueError(f"Filter \"{how}\" not recognized")
-        
+
         self.data.reset_index(drop=True, inplace=True)
-        
+
     @classmethod
     def _mutation_type_switch(cls, mutation_kind: str) -> list[str]:
         """
@@ -440,7 +462,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
         Perform the global analysis of the data.
 
         It computes the statistics and the regression models for the mean and variance of the data.
-        
+
         :param length: The length to filter by.
         :type length: int
         :param show: Whether to show the plots or not. Default is False.
@@ -495,7 +517,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
                 model_name = f"scaled {col} model"
                 full_result = _adjust_result[model_name]
                 selected_model = full_result["selected_model"]
-                
+
                 # Store both the selected model (for backward compatibility) and full results
                 _single_regression = {
                     model_name: selected_model,
@@ -509,10 +531,10 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
             # Skip full results entries - we'll handle them separately
             if k.endswith("_full_results"):
                 continue
-            
+
             # Use the helper method for scaling correction
             self._apply_scaling_correction_to_model(v)
-        
+
         # Apply scaling correction to all models in full results
         for k, v in regs.items():
             if k.endswith("_full_results"):
@@ -520,7 +542,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
                 self._apply_scaling_correction_to_model(v["selected_model"])
                 # Apply scaling to linear model
                 self._apply_scaling_correction_to_model(v["linear_model"])
-                # Apply scaling to power law model  
+                # Apply scaling to power law model
                 self._apply_scaling_correction_to_model(v["power_law_model"])
 
         # Sets of mutation types used in the analysis
@@ -576,7 +598,7 @@ class PyEvoMotion(PyEvoMotionParser, PyEvoMotionBase):
 
     def _apply_scaling_correction_to_model(self, model: dict[str, any]) -> None:
         """Apply scaling correction to a single model dictionary.
-        
+
         :param model: The model dictionary to apply scaling correction to
         :type model: dict[str, any]
         """

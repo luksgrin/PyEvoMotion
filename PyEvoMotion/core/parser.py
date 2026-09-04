@@ -2,6 +2,8 @@ from Bio import SeqIO, AlignIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
+import json
+import logging
 import numpy as np
 import pandas as pd
 from io import StringIO
@@ -9,6 +11,11 @@ from itertools import groupby
 from datetime import datetime
 from operator import itemgetter
 from subprocess import Popen, PIPE
+
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
 
 
 class PyEvoMotionParser():
@@ -25,7 +32,7 @@ class PyEvoMotionParser():
     :type positions: tuple[int]
     :param date_range: The start and end dates to filter the data by. If ``None``, the date range is not filtered.
     :type date_range: tuple[datetime] | None
-    
+
     On construction, it invokes the following methods:
         - :meth:`parse_metadata`: Parses the metadata file.
         - :meth:`parse_sequence_by_id`: Parses the sequence with the ID of the first entry in the metadata file.
@@ -47,7 +54,10 @@ class PyEvoMotionParser():
         input_meta: str,
         filters: dict[str, list[str] | str],
         positions: tuple[int],
-        date_range: tuple[datetime] | None
+        date_range: tuple[datetime] | None,
+        refseq: str | None,
+        verbose: int = 0,
+        load_mutation_instructions: str | None = None,
     ) -> None:
         """
         Initializes the class with input FASTA and metadata files.
@@ -62,23 +72,60 @@ class PyEvoMotionParser():
         :type positions: tuple[int]
         :param date_range: The start and end dates to filter the data by. If None, the date range is not filtered.
         :type date_range: tuple[datetime] | None
+        :param refseq: The path to the reference sequence FASTA file. Default is None, which means that the sequence with the earliest date will be used as reference.
+        :type refseq: str | None
+        :param verbose: The level of verbosity for logging messages. Default is 0.
+        :type verbose: int
+        :param load_mutation_instructions: The path to the TSV file containing previously determined mutation instructions. Default is None.
+        :type load_mutation_instructions: str | None
         """
+        log = logging.getLogger('pyevomotion')
+        if load_mutation_instructions is None:
+            log.info('Parse metadata file')
+            self.data = self.parse_metadata(input_meta)
+            self.load_reference(refseq, input_fasta)
+            # Implicitly filters the data
+            log.info('Filter metadata data')
+            self.filter_columns(filters)
+            if date_range:
+                log.info('Filter by date range')
+                self.filter_by_daterange(*date_range)
+            # Appends the mutations that differ between the reference sequence and the input sequences to the data
+            log.info('Parse fasta file, run mafft, get mutations')
+            self.parse_data(input_fasta, self.data["id"], verbose=verbose)
+            # Applies the position filter if provided
+            log.info('Filter positions')
+            self.filter_by_position(*positions)
+        else:
+            self.load_reference(refseq, input_fasta)
+            log.info("Load mutation instructions from file.")
+            self.data = self.parse_mutation_data(load_mutation_instructions)
+            log.info('Filter metadata data')
+            self.filter_columns(filters)
+            if date_range:
+                log.info('Filter by date range')
+                self.filter_by_daterange(*date_range)
+            log.info('Filter by position')
+            self.filter_by_position(*positions)
 
-        self.data = self.parse_metadata(input_meta)
-        self.reference = self.parse_sequence_by_id(
-            input_fasta,
-            self.data.iloc[0]["id"]
-        )
-        # Implicitly filters the data
-        self.filter_columns(filters)
-        if date_range:
-            self.filter_by_daterange(*date_range)
-        # Appends the mutations that differ between the reference sequence and the input sequences to the data
-        self.parse_data(input_fasta, self.data["id"])
-        # Applies the position filter if provided
-        self.filter_by_position(*positions)
 
-    def parse_data(self, input_fasta: str, selection: pd.Series) -> None:
+    def load_reference(self, refseq: str | None, input_fasta: str) -> None:
+        log = logging.getLogger('pyevomotion')
+        if refseq:
+            with open(refseq) as handle:
+                for record in SeqIO.parse(handle, "fasta"):
+                    self.reference = record
+                    log.info(f'Using reference sequence {record.id} from {refseq}')
+                    break
+        else:
+            refseq_id = self.data.iloc[0]["id"]
+            log.info(f'Parse fasta file for reference sequence {refseq_id}')
+            self.reference = self.parse_sequence_by_id(
+                input_fasta,
+                refseq_id
+            )
+
+    def parse_data(self, input_fasta: str, selection: pd.Series, verbose: int = 0) -> None:
         """
         Parse the input fasta file and store the resulting data in the ``data`` attribute.
 
@@ -86,12 +133,14 @@ class PyEvoMotionParser():
         :type input_fasta: str
         :param selection: The selection of sequence ids to be parsed.
         :type selection: pd.Series
+        :param verbose: The level of verbosity for logging messages. Default is 0.
+        :type verbose: int
         """
 
         self.data = (
             self.data
             .merge(
-                self.get_differing_mutations(input_fasta, selection),
+                self.get_differing_mutations(input_fasta, selection, verbose=verbose),
                 on="id",
                 how="left"
             )
@@ -121,7 +170,7 @@ class PyEvoMotionParser():
         )
 
         if start > end:
-            raise ValueError("Start date must be smaller than end date")    
+            raise ValueError("Start date must be smaller than end date")
 
         self.data = self.data[
             (self.data["date"] >= start) & (self.data["date"] <= end)
@@ -141,26 +190,35 @@ class PyEvoMotionParser():
         """
 
         start = max(1, start)  # Ensure start is at least 1
-        end = end if end > 0 else len(self.reference.seq) + 1  # Set end if not provided        
+        end = end if end > 0 else len(self.reference.seq) + 1  # Set end if not provided
+
+        # # Exports the data to a TSV file
+        # try:
+        #     self.data.to_csv(
+        #         "tmp_out_covid.tsv",
+        #         sep="\t",
+        #         index=False
+        #     )
+        # except Exception as e:
+        #     print(f"Error exporting data to TSV file: }")
 
         if start >= end:
             raise ValueError("Start position must be smaller than end position")
         elif start > len(self.reference.seq):
             raise ValueError("Start position is out of range")
-
         self.data["mutation instructions"] = self.data["mutation instructions"].apply(
             lambda x: [
                 mod
                 for mod in x
                 if start - 1 < int(mod.split("_")[1]) < end
-            ] if x else ["NO_MUTATION"]
+            ] if not isinstance(x, float) else x
         )
-        self.data = self.data[
-            self.data["mutation instructions"].apply(len) > 0
-        ]
-        self.data["mutation instructions"] = self.data["mutation instructions"].apply(
-            lambda x: [] if x == ["NO_MUTATION"] else x
-        )
+        # self.data = self.data[
+        #     self.data["mutation instructions"].apply(len) > 0
+        # ]
+        # self.data["mutation instructions"] = self.data["mutation instructions"].apply(
+        #     lambda x: [] if x == ["NO_MUTATION"] else x
+        # )
 
     def filter_columns(self, filters: dict[str, list[str] | str]) -> None:
         """
@@ -196,7 +254,7 @@ class PyEvoMotionParser():
     def _get_consecutives(data: list[int]) -> list[list[int]]:
         """
         Groups list of ordered integers into list of groups of integers
-        
+
         :param data: a list of ordered integers.
         :type data: list[int]
         :return idxs: a list of lists of consecutive integers.
@@ -225,7 +283,7 @@ class PyEvoMotionParser():
 
         # If there's a match, return 0. In the case that there's an insertion of an N, we also return 0 as it's probably a sequencing error
         if ((col[0] == col[1]) or ("N" in col)): return 0
-        
+
         # If there's an insertion, return 2
         elif col[0] == "-": return 2
 
@@ -263,7 +321,7 @@ class PyEvoMotionParser():
 
         # Encode insertions
         insertions = list(map(
-            lambda x: f"i_{x[0]}_{''.join(coding[1, x])}",
+            lambda x: f"i_{x[0]+1}_{''.join(coding[1, x])}",
             cls._get_consecutives(
                 list(np.where(clsMut == 2)[0])
             )
@@ -271,7 +329,7 @@ class PyEvoMotionParser():
 
         # Encode deletions
         deletions = list(map(
-            lambda x: f"d_{x[0]}_{''.join(coding[0, x])}",
+            lambda x: f"d_{x[0]+1}_{''.join(coding[0, x])}",
             cls._get_consecutives(
                 list(np.where(clsMut == 3)[0])
             )
@@ -283,11 +341,20 @@ class PyEvoMotionParser():
             key=lambda x: int(x.split("_")[1])
         )
 
+        # ignore deletions at both ends of genome
+        if len(mods) > 0 and mods[0].startswith("d") and int(mods[0].split("_")[1]) == 1:
+            mods = mods[1:]
+        if len(mods) > 0 and mods[-1].startswith("d"):
+            _, pos, bases = mods[-1].split("_")
+            if int(pos) + len(bases) - 1 == len(alignment[0]):
+                mods = mods[:-1]
+
         reindex = [
             (mods.index(el),len(el.split("_")[-1]))
             for el in mods
             if el.startswith("i")
         ]
+
 
         for idx,v in reindex:
             mods[idx + 1:] = list(map(
@@ -301,7 +368,7 @@ class PyEvoMotionParser():
 
         return mods
 
-    def get_differing_mutations(self, input_fasta: str, selection: pd.Series) -> pd.DataFrame:
+    def get_differing_mutations(self, input_fasta: str, selection: pd.Series, verbose: int = 0) -> pd.DataFrame:
         """
         Return the mutations that differ between the reference sequence and the input sequence.
 
@@ -311,32 +378,44 @@ class PyEvoMotionParser():
         :type input_fasta: str
         :param selection: The selection of sequence ids to be compared with the reference sequence.
         :type selection: pd.Series
+        :param verbose: The level of verbosity for logging messages. Default is 0.
+        :type verbose: int
         :return: The mutations that differ between the reference sequence and the input sequence. It contains the columns ``id``, ``mutation instructions`` and ``N count`` (the number of ``N`` in the sequence).
         :rtype: ``pd.DataFrame``
         """
 
         aligments = {}
-
+        if tqdm and verbose:
+            pbar = tqdm(total=len(selection), desc="Analyze sequences")
+        else:
+            pbar = None
+        i = 0
         with open(input_fasta) as handle:
             for record in SeqIO.parse(handle, "fasta"):
                 if not(record.id in selection.values):
                     continue
                 alignment = self.generate_alignment(
                     self.reference,
-                    record
+                    record,
                 )
                 aligments[record.id] = (
                     self.create_modifs(alignment),
                     alignment[1].seq.count("n") # In alignment fasta files, bases are lowercase
                 )
-
+                if pbar:
+                    pbar.update(1)
+                i += 1
+                if i == len(selection):
+                    break
+        if pbar:
+            pbar.close()
         return pd.DataFrame(
             [(k, v1, v2) for k, (v1, v2) in aligments.items()],
             columns=["id", "mutation instructions", "N count"]
         )
 
     @classmethod
-    def generate_alignment(cls, seq1: str, seq2: str) -> MultipleSeqAlignment:
+    def generate_alignment(cls, seq1, seq2) -> MultipleSeqAlignment:
         """
         Generate a multiple sequence alignment of the input sequences using ``MAFFT``.
 
@@ -356,12 +435,12 @@ class PyEvoMotionParser():
 
         return AlignIO.read(
             StringIO(cls._run_mafft({
-                id_1: seq1.seq,
-                id_2: seq2.seq
+                id_1: seq1.seq if hasattr(seq1, "seq") else seq1.data,
+                id_2: seq2.seq if hasattr(seq2, "seq") else seq2.data
             })),
             "fasta"
         )
- 
+
     @staticmethod
     def parse_sequence_by_id(input_fasta: str, _id: str) -> SeqRecord | None:
         """
@@ -374,7 +453,6 @@ class PyEvoMotionParser():
         :return: The sequence record with the given ``_id``. ``None`` if the ``_id`` is not found.
         :rtype: SeqRecord | None
         """
-
         with open(input_fasta) as handle:
             for record in SeqIO.parse(handle, "fasta"):
                 if record.id == _id:
@@ -423,10 +501,10 @@ class PyEvoMotionParser():
             shell=False
         )
         ps.stdin.write(input_data)
+        out, err = ps.communicate()
         ps.stdin.close()
-
-        err = ps.stderr.read().decode("utf-8")
-        out = ps.stdout.read().decode("utf-8")
+        out = out.decode("utf-8")
+        err = err.decode("utf-8")
 
         if (ps.returncode != 0) and not(ps.returncode is None):
             raise Exception(
@@ -446,7 +524,7 @@ class PyEvoMotionParser():
         :rtype: ``pd.DataFrame``
         :raises ValueError: If the metadata file does not contain a ``date`` column.
         """
-        
+
         seps = {
             "csv": ",",
             "tsv": "\t"
@@ -460,11 +538,29 @@ class PyEvoMotionParser():
         except Exception as e:
             print(f"Error reading metadata file: {e}")
             return
-        
+
         if not "date" in df.columns:
             raise ValueError("Metadata file must contain a \"date\" column")
-        
+
         df["date"] = pd.to_datetime(df["date"])
 
         return df.sort_values(by="date")
-        
+
+    @staticmethod
+    def parse_mutation_data(input_tsv: str) -> pd.DataFrame:
+        """
+        Parse the input TSV file into a ``pandas.DataFrame``.
+
+        :param input_tsv: The path to the input TSV file.
+        :type input_tsv: str
+        :return: The parsed data as a ``pd.DataFrame``.
+        :rtype: ``pd.DataFrame``
+        """
+
+        df = pd.read_csv(input_tsv, sep="\t")
+        df["mutation instructions"] = df["mutation instructions"].apply(
+            lambda x: json.loads(x.replace("'", '"')) if isinstance(x, str) else x
+        )
+        df["date"] = pd.to_datetime(df["date"])
+        return df
+

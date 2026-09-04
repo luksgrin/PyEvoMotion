@@ -10,20 +10,22 @@ import json
 import argparse
 from datetime import datetime
 
+import pandas as pd
+
 from .core.core import PyEvoMotion
 from .utils import check_and_install_mafft
 
 PACKAGE_DESCRIPTION = "PyEvoMotion"
 BANNER = r"""
 Welcome to Rodrigolab's
- _____       ______          __  __       _   _             
-|  __ \     |  ____|        |  \/  |     | | (_)            
-| |__) |   _| |____   _____ | \  / | ___ | |_ _  ___  _ __  
-|  ___/ | | |  __\ \ / / _ \| |\/| |/ _ \| __| |/ _ \| '_ \ 
+ _____       ______          __  __       _   _
+|  __ \     |  ____|        |  \/  |     | | (_)
+| |__) |   _| |____   _____ | \  / | ___ | |_ _  ___  _ __
+|  ___/ | | |  __\ \ / / _ \| |\/| |/ _ \| __| |/ _ \| '_ \
 | |   | |_| | |___\ V / (_) | |  | | (_) | |_| | (_) | | | |
 |_|    \__, |______\_/ \___/|_|  |_|\___/ \__|_|\___/|_| |_|
-        __/ |                                               
-       |___/                                                
+        __/ |
+       |___/
 """
 
 class _ArgumentParserWithHelpOnError(argparse.ArgumentParser):
@@ -62,7 +64,7 @@ class _ParseFilter(argparse.Action):
         :type option_string: str
         :raises ValueError: if the values are not in the correct format.
         """
-        
+
         setattr(namespace, self.dest, self.parse_filters(values))
 
     @staticmethod
@@ -75,7 +77,7 @@ class _ParseFilter(argparse.Action):
         :return: the parsed filters as a dictionary.
         :rtype: dict[str, str | list[str]] | None
         """
-    
+
         if values is None: return None
 
         # Create an iterator to process values one by one
@@ -125,9 +127,9 @@ class _ParseGenomePosition(argparse.Action):
         :type option_string: str
         :raises ValueError: if the values are not in the correct format.
         """
-        
 
-        
+
+
         setattr(namespace, self.dest, self.parse_genome_position(parser, values))
 
     @staticmethod
@@ -166,7 +168,7 @@ class _ParseDateRange(argparse.Action):
     The date range is passed as a string with two dots separating the start and end dates. The format must be YYYY-MM-DD.
     """
     def __call__(self, parser: argparse.ArgumentParser, namespace: argparse.Namespace, values: str, option_string: str | None = None):
-        
+
         setattr(namespace, self.dest, self.parse_date_range(parser, values))
 
     @staticmethod
@@ -306,6 +308,31 @@ def _parse_arguments() -> argparse.Namespace:
         default=None,
         help="Date range to filter the data. The date range must be separated by two dots and the format must be YYYY-MM-DD. Example: 2020-01-01..2020-12-31. If not specified, the whole dataset is considered. Note that if the origin is specified, the most restrictive date range is considered."
     )
+    parser.add_argument(
+        "-ref",
+        "--refseq",
+        type=str,
+        default=None,
+        help="FASTA file with reference sequence, default is to use the sequence with the earliest date."
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Set verbose level."
+    )
+    parser.add_argument(
+        "-load",
+        "--load_mutation_instructions",
+        help="Load previously determined mutation instructions from the given TSV file."
+    )
+    parser.add_argument(
+        "-recount",
+        "--recount_mutation_types",
+        action="store_true",
+        help="Recount the number of substitutions and indels based on the loaded mutation instructions."
+    )
 
     # Initial parser to parse just the -ij argument
     json_input_parser = argparse.ArgumentParser(add_help=False)
@@ -366,7 +393,7 @@ def _simple_serializer(k: str, v: any) -> any:
 
 def _remove_model_functions(obj):
     """Recursively remove 'model' keys containing lambda functions from nested dictionaries.
-    
+
     :param obj: Dictionary or other object to clean
     :type obj: any
     :return: Cleaned object with model functions removed
@@ -391,25 +418,25 @@ def _remove_model_functions(obj):
 
 def _restructure_regression_results(reg_results):
     """Restructure regression results for cleaner JSON export format.
-    
+
     :param reg_results: Raw regression results from analysis
     :type reg_results: dict
     :return: Restructured results with cleaner format
     :rtype: dict
     """
     restructured = {}
-    
+
     for key, value in reg_results.items():
         if key.endswith("_full_results"):
             # Extract the base name (remove _full_results suffix)
             base_name = key.replace("_full_results", "")
-            
+
             # Create the new structure with only essential fields
             restructured[base_name] = {
                 "linear_model": {
                     "parameters": value["linear_model"]["parameters"],
                     "confidence_intervals": value["linear_model"]["confidence_intervals"],
-                    "expression": value["linear_model"]["expression"], 
+                    "expression": value["linear_model"]["expression"],
                     "r2": value["linear_model"]["r2"],
                     "confidence_level": value["linear_model"]["confidence_level"]
                 },
@@ -428,7 +455,7 @@ def _restructure_regression_results(reg_results):
             full_results_key = f"{key}_full_results"
             if full_results_key not in reg_results:
                 restructured[key] = value
-    
+
     return restructured
 
 def _main():
@@ -460,6 +487,10 @@ def _main():
             )
 
     # Instantiates the PyEvoMotion class, which parses the data on construction
+    if args.verbose:
+        import logging
+        logging.basicConfig(level=logging.INFO if args.verbose == 1 else logging.DEBUG,
+                            format='%(message)s' if args.verbose == 1 else '%(asctime)s:%(name)s:%(levelname)s:%(message)s')
     instance = PyEvoMotion(
         args.seqs,
         args.meta,
@@ -467,15 +498,20 @@ def _main():
         filters=args.filter,
         positions=args.genome_positions,
         date_range=args.date_range,
+        refseq=args.refseq,
+        verbose=args.verbose,
+        load_mutation_instructions=args.load_mutation_instructions,
+        recount_mutation_types=args.recount_mutation_types
     )
 
-    # Exports the data to a TSV file
-    instance.data.to_csv(
-        f"{args.out}.tsv",
-        sep="\t",
-        index=False
-    )
-    
+    if not args.load_mutation_instructions:
+        # Exports the data to a TSV file
+        instance.data.to_csv(
+            f"{args.out}.tsv",
+            sep="\t",
+            index=False
+        )
+
     # Runs the analysis
     stats, reg = instance.analysis(
         length=args.length_filter,
@@ -493,7 +529,7 @@ def _main():
 
     # First restructure the results to the desired export format
     _reg = _restructure_regression_results(_reg)
-    
+
     # Then apply the cleaning function to remove lambda functions
     for k in list(_reg.keys()):
         _reg[k] = _remove_model_functions(_reg[k])
@@ -512,6 +548,6 @@ def _main():
 
     # Exits the program with code 0 (success)
     exit(0)
-    
+
 if __name__ == "__main__":
     _main()
