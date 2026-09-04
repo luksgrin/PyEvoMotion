@@ -29,11 +29,8 @@ WORKDIR /home/pyevomotion
 # Add ~/.local/bin to PATH
 ENV PATH="/home/pyevomotion/.local/bin:${PATH}"
 
-# Copy and run the MAFFT installer
-COPY --chown=pyevomotion:pyevomotion share/mafft_install.sh /home/pyevomotion/mafft_install.sh
-RUN chmod +x /home/pyevomotion/mafft_install.sh
-RUN bash /home/pyevomotion/mafft_install.sh
-RUN rm /home/pyevomotion/mafft_install.sh
+# MAFFT is bundled as a pure-Rust extension inside the wheel — no external
+# binary to install.
 
 # Create venv and install PyEvoMotion inside it
 RUN python3 -m venv /home/pyevomotion/venv && \

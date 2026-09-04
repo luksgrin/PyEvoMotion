@@ -1,0 +1,29 @@
+[package]
+name = "pyevomotion-core"
+version = "0.2.0"
+edition = "2021"
+description = "PyEvoMotion: the whole package as a PyO3 extension module"
+license = "MIT"
+
+[lib]
+name = "PyEvoMotion"
+crate-type = ["cdylib"]
+
+[dependencies]
+# No abi3: installing a tp_init slot via FFI (see lib.rs) needs the full
+# (non-limited) C API, where PyTypeObject fields are accessible. The project
+# is pinned to CPython 3.12 (requires-python <3.13), so the single-wheel
+# benefit of abi3 was already unused.
+pyo3 = { version = "0.22", features = ["extension-module"] }
+numpy = "0.22"
+ndarray = "0.16"
+statrs = "0.17"
+levenberg-marquardt = "0.14"
+nalgebra = "0.33"
+# Pure-Rust MAFFT port: replaces the external `mafft` binary so the wheel
+# is self-contained (no system install, no mafft_install.sh).
+mafft = "0.1"
+
+[profile.release]
+lto = true
+codegen-units = 1

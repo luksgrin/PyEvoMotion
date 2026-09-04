@@ -5,3 +5,14 @@ dist
 docs/_build
 *.egg-info
 .DS_Store
+
+# Maturin / Rust extension build artifacts
+PyEvoMotion/*.so
+PyEvoMotion/*.pyd
+PyEvoMotion/_core*
+rust/target/
+.venv/
+
+# Stray outputs from local test runs
+_trace.json
+reference.fasta

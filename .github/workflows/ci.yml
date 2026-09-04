@@ -22,15 +22,17 @@ jobs:
       - name: Set up Python 3.12
         run: uv python install 3.12
 
-      - name: Install MAFFT locally
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y git build-essential
-          bash ./share/mafft_install.sh
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          export PATH="$HOME/.local/bin:$PATH"
-          which mafft
-          mafft --version
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
 
       - name: Install dependencies
         run: uv sync --extra docs

@@ -1,0 +1,194 @@
+name: Release wheels
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+  pull_request:
+    branches: [ prod ]
+    paths:
+      - "rust/**"
+      - "pyproject.toml"
+      - ".github/workflows/release.yml"
+
+env:
+  # One CPython 3.12 wheel per platform. abi3 was dropped because the
+  # extension installs a tp_init slot via the full C API (see rust/src/lib.rs),
+  # and requires-python is pinned to 3.12 anyway. Build interpreter below.
+  MATURIN_PYTHON: "3.12"
+
+jobs:
+  build_linux:
+    name: Build Linux ${{ matrix.target }} wheel
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: auto
+          args: --release --out dist --interpreter ${{ env.MATURIN_PYTHON }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-linux-${{ matrix.target }}
+          path: dist/*.whl
+
+  build_macos:
+    name: Build macOS ${{ matrix.target }} wheel
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13      # Intel runner
+            target: x86_64
+          - os: macos-latest  # Apple Silicon runner
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --interpreter ${{ env.MATURIN_PYTHON }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-macos-${{ matrix.target }}
+          path: dist/*.whl
+
+  build_windows:
+    name: Build Windows ${{ matrix.target }} wheel
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --interpreter ${{ env.MATURIN_PYTHON }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-windows-${{ matrix.target }}
+          path: dist/*.whl
+
+  build_sdist:
+    name: Build sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  smoke_test_wheels:
+    name: Smoke-test ${{ matrix.os }} wheel
+    needs: [build_linux, build_macos, build_windows]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: wheel-linux-x86_64
+          - os: macos-13
+            artifact: wheel-macos-x86_64
+          - os: macos-latest
+            artifact: wheel-macos-aarch64
+          - os: windows-latest
+            artifact: wheel-windows-x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.MATURIN_PYTHON }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.MATURIN_PYTHON }}
+
+      - name: Download wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist
+
+      - name: Install wheel
+        shell: bash
+        run: |
+          pip install --upgrade pip
+          pip install pytest numpy
+          pip install --no-index --find-links=dist PyEvoMotion
+
+      - name: Verify Rust extension imports & subclass works
+        shell: bash
+        run: |
+          python - <<'PY'
+          # The whole package is one compiled module; every public name and
+          # the console entry point come straight from it.
+          import PyEvoMotion
+          from PyEvoMotion import PyEvoMotion as Cls, PyEvoMotionBase, PyEvoMotionParser, _main
+          assert issubclass(Cls, PyEvoMotionParser) and issubclass(Cls, PyEvoMotionBase)
+          class Sub(PyEvoMotionBase):
+              pass
+          import numpy as np
+          x = np.arange(10, dtype=np.float64)
+          y = 2 * x + 1
+          out = Sub.linear_regression(x, y)
+          assert abs(out["parameters"]["m"] - 2.0) < 1e-9
+          assert abs(out["parameters"]["b"] - 1.0) < 1e-9
+          print("OK", PyEvoMotion.__file__)
+          PY
+
+      - name: Run rust/tests/test_smoke.py against installed wheel
+        shell: bash
+        run: pytest rust/tests/test_smoke.py -v
+
+  publish:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [smoke_test_wheels, build_sdist]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/PyEvoMotion
+    # OIDC trusted publishing (no PyPI token in secrets). Configure once
+    # at https://pypi.org/manage/project/PyEvoMotion/settings/publishing/
+    # See: https://docs.pypi.org/trusted-publishers/
+    permissions:
+      id-token: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          # Set to true for testing against TestPyPI before going live.
+          # repository-url: https://test.pypi.org/legacy/
+          print-hash: true
