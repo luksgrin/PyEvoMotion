@@ -192,33 +192,36 @@ class PyEvoMotionParser():
         start = max(1, start)  # Ensure start is at least 1
         end = end if end > 0 else len(self.reference.seq) + 1  # Set end if not provided
 
-        # # Exports the data to a TSV file
-        # try:
-        #     self.data.to_csv(
-        #         "tmp_out_covid.tsv",
-        #         sep="\t",
-        #         index=False
-        #     )
-        # except Exception as e:
-        #     print(f"Error exporting data to TSV file: }")
-
         if start >= end:
             raise ValueError("Start position must be smaller than end position")
         elif start > len(self.reference.seq):
             raise ValueError("Start position is out of range")
+
+        # Window membership on 1-based positions: substitutions for
+        # start <= pos < end, insertions/deletions for start < pos <= end. The
+        # indel rule admits exactly the mutations admitted before indel
+        # positions became 1-based, so counts are unchanged by that fix.
+        def in_window(mod: str) -> bool:
+            pos = int(mod.split("_")[1])
+            if mod.startswith("s"):
+                return start <= pos < end
+            return start < pos <= end
+
+        # Rows with no mutation instructions (NaN: id absent from the FASTA
+        # file) pass through untouched; PyEvoMotion.__init__ warns and drops them.
         self.data["mutation instructions"] = self.data["mutation instructions"].apply(
-            lambda x: [
-                mod
-                for mod in x
-                if start - 1 < int(mod.split("_")[1]) < end
-            ] if not isinstance(x, float) else x
+            lambda x: x if isinstance(x, float) else (
+                [mod for mod in x if in_window(mod)] if x else ["NO_MUTATION"]
+            )
         )
-        # self.data = self.data[
-        #     self.data["mutation instructions"].apply(len) > 0
-        # ]
-        # self.data["mutation instructions"] = self.data["mutation instructions"].apply(
-        #     lambda x: [] if x == ["NO_MUTATION"] else x
-        # )
+        self.data = self.data[
+            self.data["mutation instructions"].apply(
+                lambda x: isinstance(x, float) or len(x) > 0
+            )
+        ]
+        self.data["mutation instructions"] = self.data["mutation instructions"].apply(
+            lambda x: [] if x == ["NO_MUTATION"] else x
+        )
 
     def filter_columns(self, filters: dict[str, list[str] | str]) -> None:
         """
@@ -340,14 +343,6 @@ class PyEvoMotionParser():
             insertions + deletions + subst,
             key=lambda x: int(x.split("_")[1])
         )
-
-        # ignore deletions at both ends of genome
-        if len(mods) > 0 and mods[0].startswith("d") and int(mods[0].split("_")[1]) == 1:
-            mods = mods[1:]
-        if len(mods) > 0 and mods[-1].startswith("d"):
-            _, pos, bases = mods[-1].split("_")
-            if int(pos) + len(bases) - 1 == len(alignment[0]):
-                mods = mods[:-1]
 
         reindex = [
             (mods.index(el),len(el.split("_")[-1]))
