@@ -103,7 +103,9 @@ This package has been developed using ``pytest`` for testing. To run the tests, 
 .. note::
    The UK/USA dataset tests run, by default, on a fixed-seed subset of the manuscript sample (1,000 sequences per country, about 20 MB), downloaded on first use from the ``ci-data-v1`` release of the GitHub repository into ``tests/data/test3/ci/``.
 
-   Set ``PYEVOMOTION_FULL_TEST_DATA=1`` to run them against the full dataset (about 11 GB, downloaded from ``https://sourceforge.net/projects/pyevomotion/files/test_data.zip/download``). That takes several hours.
+   The synthetic-dataset tests likewise run on a fixed-seed sample of 400 of their 2,001 sequences.
+
+   Set ``PYEVOMOTION_FULL_TEST_DATA=1`` to run everything against the full data (the UK/USA dataset is about 11 GB, downloaded from ``https://sourceforge.net/projects/pyevomotion/files/test_data.zip/download``). That takes several hours.
 
 Docker Installation
 -------------------

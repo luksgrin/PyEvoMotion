@@ -55,8 +55,9 @@ keyword arguments of the `PyEvoMotion` constructor.
   the manuscript sample (1,000 sequences per country), published as the
   `ci-data-v1` GitHub release asset and cached by CI. `PYEVOMOTION_FULL_TEST_DATA=1`
   selects the full 11 GB dataset; the "Full UK/USA dataset tests" workflow
-  runs it on demand, one test per job. Random samples in the tests use a
-  fixed seed.
+  runs it on demand, one test per job. The synthetic-dataset tests likewise
+  run on a fixed-seed sample of 400 of their 2,001 sequences unless the
+  variable is set. Random samples in the tests use a fixed seed.
 
 ### Documentation
 
