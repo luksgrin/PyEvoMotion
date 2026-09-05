@@ -16,3 +16,8 @@ rust/target/
 # Stray outputs from local test runs
 _trace.json
 reference.fasta
+
+# CI subset of the UK/USA dataset (downloaded from the ci-data release)
+tests/data/test3/ci/
+
+test3-ci-subset-*.tar.gz

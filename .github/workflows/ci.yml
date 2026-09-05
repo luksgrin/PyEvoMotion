@@ -8,7 +8,11 @@ on:
 
 jobs:
   test:
+    # The private mirror has no Actions cache and metered minutes; CI runs
+    # on the public repository only.
+    if: github.repository == 'luksgrin/PyEvoMotion'
     runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     steps:
       - name: Checkout repository
@@ -37,24 +41,42 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra docs
 
-      - name: Cache test data
+      # The dataset tests use a fixed-seed subset of the UK/USA dataset
+      # (~20 MB) published as a GitHub release asset; the full 11 GB dataset
+      # is exercised by the manually triggered full-dataset-tests workflow.
+      - name: Cache CI test data
         id: cache-data
         uses: actions/cache@v4
         with:
-          path: tests/data/test3/
-          key: test-data-v1
+          path: tests/data/test3/ci/
+          key: test-data-ci-v1
 
-      - name: Skip data prep if cache is hit
-        if: steps.cache-data.outputs.cache-hit == 'true'
-        run: echo "Test data is cached. Skipping download."
-
-      - name: Download and extract test data (if needed)
+      - name: Download CI test data (if needed)
         if: steps.cache-data.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "Test data not found in cache — downloading..."
-          uv run python -c "import tests.helpers.test_UK_USA_dataset_helpers as t; t.download_data_zip(); t.extract_data_zip();"
+          mkdir -p tests/data/test3/ci
+          gh release download ci-data-v1 -R luksgrin/PyEvoMotion \
+            --pattern 'test3-ci-subset-v1.tar.gz' --dir tests/data/test3/ci
+          tar -xzf tests/data/test3/ci/test3-ci-subset-v1.tar.gz -C tests/data/test3/ci
+          rm tests/data/test3/ci/test3-ci-subset-v1.tar.gz
+          ls -l tests/data/test3/ci
+
+      - name: Alignment throughput (informational)
+        run: |
+          uv run python - <<'PY'
+          import time
+          from Bio import SeqIO
+          from PyEvoMotion import PyEvoMotionParser
+          recs = list(SeqIO.parse("tests/data/test1/test1.sequences.fasta", "fasta"))
+          pairs = {recs[0].id: str(recs[0].seq), recs[10].id: str(recs[10].seq)}
+          n = 20
+          t = time.perf_counter()
+          for _ in range(n):
+              PyEvoMotionParser._run_mafft(pairs)
+          print(f"{(time.perf_counter() - t) / n:.3f} s per pairwise alignment ({len(recs[0].seq)} bp, mean of {n})")
+          PY
 
       - name: Run tests with pytest
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          uv run pytest -sv
+        run: uv run pytest -sv

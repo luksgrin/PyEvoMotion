@@ -49,6 +49,15 @@ keyword arguments of the `PyEvoMotion` constructor.
 - The FASTA file is no longer read to the end once every selected id has
   been seen.
 
+### Testing
+
+- The UK/USA dataset tests default to a fixed-seed, date-stratified subset of
+  the manuscript sample (1,000 sequences per country), published as the
+  `ci-data-v1` GitHub release asset and cached by CI. `PYEVOMOTION_FULL_TEST_DATA=1`
+  selects the full 11 GB dataset; the "Full UK/USA dataset tests" workflow
+  runs it on demand, one test per job. Random samples in the tests use a
+  fixed seed.
+
 ### Fixed
 
 - `-ep` plot export failed with `NameError: 'model'`.

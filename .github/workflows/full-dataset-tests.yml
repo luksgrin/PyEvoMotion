@@ -1,0 +1,59 @@
+name: Full UK/USA dataset tests
+
+# Runs the dataset tests against the full 11 GB UK/USA dataset (SourceForge),
+# one test per job so each stays well inside the 6 h job limit. Trigger it by
+# hand before a release; regular CI uses the small fixed-seed subset.
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    if: github.repository == 'luksgrin/PyEvoMotion'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - test_UK_dataset
+          - test_USA_dataset
+          - test_UK_figure_dataset
+          - test_USA_figure_dataset
+          - test_UK_5D_dataset
+          - test_UK_10D_dataset
+          - test_UK_14D_dataset
+    env:
+      PYEVOMOTION_FULL_TEST_DATA: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('rust/Cargo.lock') }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Download the full dataset
+        run: uv run python -c "from tests.helpers.test_UK_USA_dataset_helpers import ensure_data; ensure_data()"
+
+      - name: Run ${{ matrix.test }}
+        run: uv run pytest tests/test_UK_USA_dataset.py -k ${{ matrix.test }} -sv

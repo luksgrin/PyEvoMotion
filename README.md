@@ -144,10 +144,10 @@ pip install .
 pytest
 ```
 
-> [!WARNING]
-> The first time the tests are run, they will automatically download the test data from `https://sourceforge.net/projects/pyevomotion/files/test_data.zip/download` and extract it in the appropriate directory.
+> [!NOTE]
+> The UK/USA dataset tests run, by default, on a fixed-seed subset of the manuscript sample (1,000 sequences per country, about 20 MB). The first run downloads it from this repository's `ci-data-v1` release into `tests/data/test3/ci/`.
 >
-> Given the size of the test data, this may take a while.
+> To run them against the full dataset (about 11 GB, downloaded from `https://sourceforge.net/projects/pyevomotion/files/test_data.zip/download`), set `PYEVOMOTION_FULL_TEST_DATA=1`. That takes several hours; on GitHub it is available as the manually triggered "Full UK/USA dataset tests" workflow.
 
 
 ## Docker
