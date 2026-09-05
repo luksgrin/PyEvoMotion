@@ -34,6 +34,18 @@ ported to the Rust code base:
 All of them round-trip through `-xj`/`-ij`. The same options exist as
 keyword arguments of the `PyEvoMotion` constructor.
 
+### Removed dependencies
+
+- Biopython is no longer used. FASTA files are read by a streaming Rust
+  parser; `PyEvoMotion.reference`, the records yielded by the new
+  `PyEvoMotionParser.read_fasta(path)` and the pair returned by
+  `generate_alignment` are `PyEvoMotion.SequenceRecord` objects with `id`,
+  `description` and `seq` (a plain `str`) attributes. Code that only used
+  `.id`, `.seq`, `len()` or `str()` on the reference keeps working.
+- `scikit-learn` was declared but never used; `pytest` is a development
+  dependency (`uv sync` installs it, `pip install .` does not). Runtime
+  dependencies are now pandas, numpy and matplotlib.
+
 ### Changed
 
 - **Mutation instruction positions are 1-based for every kind.**

@@ -6,6 +6,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyList, PyTuple, PyType};
 
 use crate::base::PyEvoMotionBase;
+use crate::fasta::{self, FastaReader, SequenceRecord};
 
 // ─────────────────────── pure-Rust algorithms ───────────────────────
 
@@ -126,8 +127,8 @@ fn create_modifs_from_strings(seq0: &str, seq1: &str) -> Vec<String> {
 
 /// In-process alignment via the pure-Rust `mafft` crate — no external
 /// binary. Returns the same aligned-FASTA string the old `mafft`
-/// subprocess produced, so everything downstream (Bio.AlignIO.read,
-/// create_modifs, get_differing_mutations) is unchanged.
+/// subprocess produced; generate_alignment parses it back into two
+/// SequenceRecords.
 ///
 /// Residues are lower-cased to mirror C MAFFT's default output: the
 /// N-count in get_differing_mutations counts lowercase 'n', while
@@ -166,8 +167,8 @@ fn run_mafft_inner(
         let engine = MafftEngine::new(AlignmentMode::FftNs2).with_c_compat(true);
         let msa = engine.align(&set);
 
-        // Serialize to FASTA (unwrapped lines; Bio.AlignIO parses them
-        // fine), lower-casing residues to match C MAFFT's default output.
+        // Serialize to FASTA (unwrapped lines), lower-casing residues to
+        // match C MAFFT's default output.
         let mut out = String::new();
         for (name, seq) in msa.names.iter().zip(msa.sequences.iter()) {
             out.push('>');
@@ -335,25 +336,32 @@ impl PyEvoMotionParser {
         input_fasta: &str,
     ) -> PyResult<()> {
         let py = slf.py();
-        let reference = match refseq {
-            Some(path) => parse_first_sequence_inner(py, path)?,
+        let reference: SequenceRecord = match refseq {
+            Some(path) => fasta::first_record(path)?
+                .ok_or_else(|| {
+                    PyValueError::new_err(format!(
+                        "Reference FASTA file {} contains no sequences",
+                        path
+                    ))
+                })?
+                .into(),
             None => {
                 let data_attr = slf.getattr("data")?;
                 let iloc = data_attr.getattr("iloc")?;
                 let first_row = iloc.call_method1("__getitem__", (0i64,))?;
                 let first_id: String =
                     first_row.call_method1("__getitem__", ("id",))?.extract()?;
-                let rec = parse_sequence_by_id_inner(py, input_fasta, &first_id)?;
-                if rec.is_none() {
-                    return Err(PyValueError::new_err(format!(
-                        "Reference sequence '{}' (first metadata entry) was not found in {}",
-                        first_id, input_fasta
-                    )));
-                }
-                rec
+                fasta::find_by_id(input_fasta, &first_id)?
+                    .ok_or_else(|| {
+                        PyValueError::new_err(format!(
+                            "Reference sequence '{}' (first metadata entry) was not found in {}",
+                            first_id, input_fasta
+                        ))
+                    })?
+                    .into()
             }
         };
-        slf.setattr("reference", reference)?;
+        slf.setattr("reference", Py::new(py, reference)?)?;
         Ok(())
     }
 
@@ -600,13 +608,17 @@ impl PyEvoMotionParser {
         _cls: &Bound<'py, PyType>,
         alignment: Bound<'py, PyAny>,
     ) -> PyResult<Vec<String>> {
+        // `alignment` is whatever generate_alignment returned: a list of two
+        // SequenceRecords by default, but any indexable of objects with a
+        // `.seq` attribute works (e.g. a Biopython alignment).
         let rec0 = alignment.call_method1("__getitem__", (0i64,))?;
         let rec1 = alignment.call_method1("__getitem__", (1i64,))?;
-        let seq0_obj = rec0.call_method0("upper")?.getattr("seq")?;
-        let seq1_obj = rec1.call_method0("upper")?.getattr("seq")?;
-        let seq0: String = seq0_obj.call_method0("__str__")?.extract()?;
-        let seq1: String = seq1_obj.call_method0("__str__")?.extract()?;
-        Ok(create_modifs_from_strings(&seq0, &seq1))
+        let seq0: String = rec0.getattr("seq")?.call_method0("__str__")?.extract()?;
+        let seq1: String = rec1.getattr("seq")?.call_method0("__str__")?.extract()?;
+        Ok(create_modifs_from_strings(
+            &seq0.to_ascii_uppercase(),
+            &seq1.to_ascii_uppercase(),
+        ))
     }
 
     // get_differing_mutations -------------------------------------------
@@ -617,8 +629,6 @@ impl PyEvoMotionParser {
     ) -> PyResult<Bound<'py, PyAny>> {
         let py = slf.py();
         let pd = py.import_bound("pandas")?;
-        let bio_seqio = py.import_bound("Bio.SeqIO")?;
-        let builtins = py.import_bound("builtins")?;
 
         let selection_values = selection.getattr("values")?;
         let selection_list: Vec<String> =
@@ -634,30 +644,39 @@ impl PyEvoMotionParser {
         let mut all_modifs: Vec<Vec<String>> = Vec::new();
         let mut n_counts: Vec<i64> = Vec::new();
 
-        let handle = builtins.call_method1("open", (input_fasta,))?;
-        let parser = bio_seqio.call_method1("parse", (&handle, "fasta"))?;
-        let py_iter = parser.iter()?;
-        for rec_result in py_iter {
+        let mut reader = fasta::open(input_fasta)?;
+        loop {
             // Every selected id has been seen: no need to scan the rest of
             // the (possibly huge) FASTA file.
             if ids.len() >= total {
                 break;
             }
-            let rec = rec_result?;
-            let rec_id: String = rec.getattr("id")?.extract()?;
-            if !selection_set.contains(&rec_id) {
+            let raw = match reader.next_record().map_err(|e| {
+                PyValueError::new_err(format!("Error reading FASTA file {}: {}", input_fasta, e))
+            })? {
+                Some(r) => r,
+                None => break,
+            };
+            if !selection_set.contains(&raw.id) {
                 continue;
             }
+            let rec_id = raw.id.clone();
+            let rec = Py::new(py, SequenceRecord::from(raw))?;
             // Dispatch generate_alignment + create_modifs through the
             // Python class so subclass overrides are honoured.
             let alignment = cls_bound
-                .call_method1("generate_alignment", (reference.clone(), rec.clone()))?;
+                .call_method1("generate_alignment", (reference.clone(), rec))?;
             let modifs: Vec<String> = cls_bound
                 .call_method1("create_modifs", (alignment.clone(),))?
                 .extract()?;
-            let alignment_1 = alignment.call_method1("__getitem__", (1i64,))?;
-            let seq_obj = alignment_1.getattr("seq")?;
-            let n_count: i64 = seq_obj.call_method1("count", ("n",))?.extract()?;
+            // N count: lowercase 'n' in the aligned target (the aligner emits
+            // lowercase residues, as C MAFFT does).
+            let aligned_target: String = alignment
+                .call_method1("__getitem__", (1i64,))?
+                .getattr("seq")?
+                .call_method0("__str__")?
+                .extract()?;
+            let n_count = aligned_target.chars().filter(|&c| c == 'n').count() as i64;
 
             ids.push(rec_id);
             all_modifs.push(modifs);
@@ -670,7 +689,6 @@ impl PyEvoMotionParser {
         if verbose > 0 {
             eprintln!();
         }
-        handle.call_method0("close")?;
 
         // Build [(id, modifs, n_count), ...] and feed into pd.DataFrame.
         let rows = PyList::empty_bound(py);
@@ -690,45 +708,53 @@ impl PyEvoMotionParser {
     }
 
     // generate_alignment ------------------------------------------------
+    /// Align ``seq1`` (reference) against ``seq2`` and return the two
+    /// aligned records as a list ``[reference, target]`` of
+    /// :class:`SequenceRecord` (residues lower-case, gaps as ``-``).
     #[classmethod]
     fn generate_alignment<'py>(
         cls: &Bound<'py, PyType>,
         seq1: Bound<'py, PyAny>,
         seq2: Bound<'py, PyAny>,
-    ) -> PyResult<Bound<'py, PyAny>> {
+    ) -> PyResult<Bound<'py, PyList>> {
         let py = cls.py();
-        let mut id_1: String = seq1.getattr("id")?.extract()?;
-        let id_2: String = seq2.getattr("id")?.extract()?;
-        if id_1 == id_2 {
+        let rec1 = fasta::record_from_any(&seq1)?;
+        let rec2 = fasta::record_from_any(&seq2)?;
+        let mut id_1 = rec1.id.clone();
+        if id_1 == rec2.id {
             id_1.push_str("_ref");
         }
-        let s1: String = seq1
-            .getattr("seq")?
-            .call_method0("__str__")?
-            .extract()?;
-        let s2: String = seq2
-            .getattr("seq")?
-            .call_method0("__str__")?
-            .extract()?;
         let seqs_dict = PyDict::new_bound(py);
-        seqs_dict.set_item(&id_1, s1)?;
-        seqs_dict.set_item(&id_2, s2)?;
+        seqs_dict.set_item(&id_1, &rec1.seq)?;
+        seqs_dict.set_item(&rec2.id, &rec2.seq)?;
         // Dispatch _run_mafft via cls so subclass overrides are honoured.
         let mafft_out: String = cls.call_method1("_run_mafft", (seqs_dict,))?.extract()?;
-        let io = py.import_bound("io")?;
-        let string_io = io.call_method1("StringIO", (mafft_out,))?;
-        let bio_align = py.import_bound("Bio.AlignIO")?;
-        Ok(bio_align.call_method1("read", (string_io, "fasta"))?)
+        let records = fasta::parse_str(&mafft_out);
+        if records.len() != 2 {
+            return Err(PyValueError::new_err(format!(
+                "Expected 2 aligned sequences from the aligner, got {}",
+                records.len()
+            )));
+        }
+        let out = PyList::empty_bound(py);
+        for raw in records {
+            out.append(Py::new(py, SequenceRecord::from(raw))?)?;
+        }
+        Ok(out)
+    }
+
+    // read_fasta --------------------------------------------------------
+    /// Lazily iterate over the records of a FASTA file.
+    #[staticmethod]
+    fn read_fasta(input_fasta: &str) -> PyResult<FastaReader> {
+        FastaReader::new(input_fasta)
     }
 
     // parse_sequence_by_id ----------------------------------------------
+    /// The record with id ``_id``, or ``None`` if the file has none.
     #[staticmethod]
-    fn parse_sequence_by_id<'py>(
-        py: Python<'py>,
-        input_fasta: &str,
-        _id: &str,
-    ) -> PyResult<Bound<'py, PyAny>> {
-        parse_sequence_by_id_inner(py, input_fasta, _id)
+    fn parse_sequence_by_id(input_fasta: &str, _id: &str) -> PyResult<Option<SequenceRecord>> {
+        Ok(fasta::find_by_id(input_fasta, _id)?.map(SequenceRecord::from))
     }
 
     // _run_mafft --------------------------------------------------------
@@ -745,7 +771,7 @@ impl PyEvoMotionParser {
             let seq_str: String = if let Ok(s) = v.extract::<String>() {
                 s
             } else {
-                // Likely a Bio.Seq — coerce via str().
+                // Any other sequence-like object — coerce via str().
                 v.call_method0("__str__")?.extract()?
             };
             seqs.push((name, seq_str));
@@ -874,46 +900,4 @@ fn parse_metadata_inner<'py>(
     let kw = PyDict::new_bound(py);
     kw.set_item("by", "date")?;
     Ok(df.call_method("sort_values", (), Some(&kw))?)
-}
-
-/// First record of a FASTA file (used for an explicit reference sequence).
-fn parse_first_sequence_inner<'py>(
-    py: Python<'py>,
-    input_fasta: &str,
-) -> PyResult<Bound<'py, PyAny>> {
-    let bio_seqio = py.import_bound("Bio.SeqIO")?;
-    let builtins = py.import_bound("builtins")?;
-    let handle = builtins.call_method1("open", (input_fasta,))?;
-    let parser = bio_seqio.call_method1("parse", (&handle, "fasta"))?;
-    let first = parser.iter()?.next();
-    handle.call_method0("close")?;
-    match first {
-        Some(rec) => rec,
-        None => Err(PyValueError::new_err(format!(
-            "Reference FASTA file {} contains no sequences",
-            input_fasta
-        ))),
-    }
-}
-
-fn parse_sequence_by_id_inner<'py>(
-    py: Python<'py>,
-    input_fasta: &str,
-    target_id: &str,
-) -> PyResult<Bound<'py, PyAny>> {
-    let bio_seqio = py.import_bound("Bio.SeqIO")?;
-    let builtins = py.import_bound("builtins")?;
-    let handle = builtins.call_method1("open", (input_fasta,))?;
-    let parser = bio_seqio.call_method1("parse", (&handle, "fasta"))?;
-    let py_iter = parser.iter()?;
-    for rec_result in py_iter {
-        let rec = rec_result?;
-        let rec_id: String = rec.getattr("id")?.extract()?;
-        if rec_id == target_id {
-            handle.call_method0("close")?;
-            return Ok(rec);
-        }
-    }
-    handle.call_method0("close")?;
-    Ok(py.None().into_bound(py))
 }

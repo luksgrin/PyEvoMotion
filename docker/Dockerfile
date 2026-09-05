@@ -39,7 +39,7 @@ RUN python3 -m venv /home/pyevomotion/venv && \
         PyEvoMotion && \
     tar -xvzf pyevomotion-*.tar.gz && \
     cd pyevomotion-* && \
-    /home/pyevomotion/venv/bin/pip install . && \
+    /home/pyevomotion/venv/bin/pip install . pytest && \
     cd .. && \
     rm -rf pyevoMotion-* *.tar.gz
 

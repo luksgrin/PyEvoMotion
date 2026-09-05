@@ -5,14 +5,12 @@ create_modifs) directly, plus the I/O methods (parse_metadata,
 parse_sequence_by_id, _run_mafft, generate_alignment) and the orchestrating
 __init__ on real test1 fixtures.
 """
-from io import StringIO
 
 import numpy as np
 import pandas as pd
 import pytest
-from Bio import AlignIO
 
-from PyEvoMotion import PyEvoMotionParser
+from PyEvoMotion import PyEvoMotionParser, SequenceRecord, FastaReader
 
 
 # ─────────────────────── pure algorithm ───────────────────────
@@ -50,9 +48,8 @@ def test_column_decision_deletion():
 
 
 def _alignment_from_strings(ref: str, target: str):
-    """Build a Bio.AlignIO 2-row MultipleSeqAlignment from two strings."""
-    fasta = f">ref\n{ref}\n>target\n{target}\n"
-    return AlignIO.read(StringIO(fasta), "fasta")
+    """Build the [reference, target] pair generate_alignment returns."""
+    return [SequenceRecord("ref", ref), SequenceRecord("target", target)]
 
 
 def test_create_modifs_substitution_only():
@@ -160,9 +157,8 @@ def test_parser_init_through_pyevomotion():
 def test_refseq_uses_first_record_of_given_fasta(tmp_path):
     """With refseq, the reference is the first record of that file rather
     than the earliest-dated metadata entry."""
-    from Bio import SeqIO
     from PyEvoMotion import PyEvoMotion
-    records = list(SeqIO.parse("tests/data/test1/test1.sequences.fasta", "fasta"))
+    records = list(PyEvoMotionParser.read_fasta("tests/data/test1/test1.sequences.fasta"))
     # Pick a record that is not the default reference and write it alone.
     default = PyEvoMotion(
         "tests/data/test1/test1.sequences.fasta",
@@ -170,7 +166,7 @@ def test_refseq_uses_first_record_of_given_fasta(tmp_path):
     ).reference.id
     chosen = next(r for r in records if r.id != default)
     ref_fasta = tmp_path / "ref.fasta"
-    SeqIO.write([chosen], ref_fasta, "fasta")
+    ref_fasta.write_text(chosen.format())
 
     inst = PyEvoMotion(
         "tests/data/test1/test1.sequences.fasta",
@@ -217,3 +213,59 @@ def test_metadata_ids_missing_from_fasta_are_dropped_with_warning(tmp_path, capf
     assert inst.data["mutation instructions"].isna().sum() == 0
     # The index is contiguous again after the drop.
     assert list(inst.data.index) == list(range(len(inst.data)))
+
+
+# ─────────────────────── FASTA reader / SequenceRecord ───────────────────────
+
+FASTA = "tests/data/test1/test1.sequences.fasta"
+
+
+def test_read_fasta_streams_all_records():
+    reader = PyEvoMotionParser.read_fasta(FASTA)
+    assert isinstance(reader, FastaReader)
+    records = list(reader)
+    assert len(records) == 101
+    assert all(isinstance(r, SequenceRecord) for r in records)
+    ids = [r.id for r in records]
+    assert len(set(ids)) == 101                       # unique ids
+    assert "hCoV-19/Wuhan/IVDC-HB-01/2019" in ids     # the reference is among them
+    assert len(records[0]) == len(records[0].seq) > 29000
+    assert set(records[0].seq.upper()) <= set("ACGTNRYKMSWBDHV-")
+
+
+def test_read_fasta_matches_parse_sequence_by_id():
+    wanted = "hCoV-19/Wuhan/IVDC-HB-01/2019"
+    rec = PyEvoMotionParser.parse_sequence_by_id(FASTA, wanted)
+    streamed = next(r for r in PyEvoMotionParser.read_fasta(FASTA) if r.id == wanted)
+    assert rec == streamed and rec.seq == streamed.seq and rec.description == streamed.description
+
+
+def test_fasta_parser_header_multiline_and_crlf(tmp_path):
+    fa = tmp_path / "x.fasta"
+    fa.write_bytes(b"junk before first header\r\n>seq1 some description here\r\nACGT\r\nac gt\r\n\r\n>seq2\nTT\n")
+    recs = list(PyEvoMotionParser.read_fasta(str(fa)))
+    assert [r.id for r in recs] == ["seq1", "seq2"]
+    assert recs[0].description == "seq1 some description here"
+    assert recs[0].seq == "ACGTacgt"          # whitespace dropped, case kept
+    assert recs[1].seq == "TT" and recs[1].description == "seq2"
+    assert recs[0].format() == ">seq1 some description here\nACGTacgt\n"
+    assert recs[0].upper().seq == "ACGTACGT" and recs[0].lower().seq == "acgtacgt"
+    assert repr(recs[1]) == "SequenceRecord(id='seq2', length=2)"
+
+
+def test_read_fasta_missing_file_raises():
+    with pytest.raises(IOError):
+        PyEvoMotionParser.read_fasta("does/not/exist.fasta")
+
+
+def test_generate_alignment_returns_two_records():
+    ref = SequenceRecord("r", "ACGTACGTAC")
+    tgt = SequenceRecord("t", "ACGTCGTAC")   # one deletion
+    aln = PyEvoMotionParser.generate_alignment(ref, tgt)
+    assert isinstance(aln, list) and len(aln) == 2
+    assert all(isinstance(r, SequenceRecord) for r in aln)
+    assert aln[0].id == "r" and aln[1].id == "t"
+    assert len(aln[0].seq) == len(aln[1].seq)
+    assert aln[0].seq.replace("-", "").upper() == "ACGTACGTAC"
+    assert "-" in aln[1].seq
+    assert PyEvoMotionParser.create_modifs(aln) == ["d_5_A"] or PyEvoMotionParser.create_modifs(aln)[0].startswith("d_")

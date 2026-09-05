@@ -17,7 +17,7 @@ import os
 import tarfile
 
 import pandas as pd
-from Bio import SeqIO
+from PyEvoMotion import PyEvoMotionParser
 
 from .test_UK_USA_dataset_helpers import (
     CI_DATA_VERSION,
@@ -52,9 +52,9 @@ def build(n: int = N_PER_SET, seed: int = SAMPLE_SEED) -> str:
         wanted = set(keep)
         print(f"{set_}: scanning FASTA for {len(wanted)} records ...", flush=True)
         with open(f"{CI_DIR}/test3{set_}.fasta", "w") as out:
-            for rec in SeqIO.parse(f"{ROOT}/test3{set_}.fasta", "fasta"):
+            for rec in PyEvoMotionParser.read_fasta(f"{ROOT}/test3{set_}.fasta"):
                 if rec.id in wanted:
-                    SeqIO.write(rec, out, "fasta")
+                    out.write(rec.format())
                     wanted.discard(rec.id)
                     if not wanted:
                         break

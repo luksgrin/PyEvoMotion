@@ -3,8 +3,10 @@ PyEvoMotion package
 
 ``PyEvoMotion`` is a single compiled extension module (written in Rust,
 built with PyO3). Every public name lives directly under ``PyEvoMotion``.
-The classes form one inheritance chain, so an instance of
+The analysis classes form one inheritance chain, so an instance of
 :class:`~PyEvoMotion.PyEvoMotion` has every method listed on this page.
+FASTA input is handled by :class:`~PyEvoMotion.SequenceRecord` and
+:class:`~PyEvoMotion.FastaReader`.
 
 .. automodule:: PyEvoMotion
 
@@ -28,6 +30,17 @@ Parsing and alignment
    :members:
    :undoc-members:
    :show-inheritance:
+
+FASTA records
+-------------
+
+.. autoclass:: PyEvoMotion.SequenceRecord(id, seq, description=None)
+   :members:
+   :undoc-members:
+
+.. autoclass:: PyEvoMotion.FastaReader(path)
+   :members:
+   :undoc-members:
 
 Mathematical utilities
 ----------------------

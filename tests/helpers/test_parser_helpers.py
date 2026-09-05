@@ -1,5 +1,3 @@
-from Bio.Seq import Seq
-
 class MutateReference():
     """Rebuild a sequence from the reference and its mutation instructions.
 
@@ -15,7 +13,7 @@ class MutateReference():
         seq = cls._make_substitution(seq, instrucs)
         seq = cls._make_deletion(seq, instrucs)
         seq = cls._make_insertion(seq, instrucs)
-        return Seq("".join(seq).replace("-", ""))
+        return "".join(seq).replace("-", "")
 
     @staticmethod
     def _make_substitution(seq, instrucs):

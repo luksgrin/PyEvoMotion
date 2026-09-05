@@ -1,7 +1,5 @@
 use std::os::raw::c_int;
 
-use ndarray::Array1;
-use numpy::{IntoPyArray, PyArray1};
 use pyo3::exceptions::PyValueError;
 use pyo3::ffi;
 use pyo3::prelude::*;

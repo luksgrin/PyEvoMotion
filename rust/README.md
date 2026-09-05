@@ -10,6 +10,7 @@ extension module built with PyO3 / maturin. There are no Python sources;
 | `PyEvoMotionParser`   | `src/parser.rs` | Input parsing, in-process MAFFT alignment, mutation calling, filters |
 | `_PyEvoMotionCore`    | `src/core.rs`   | Analysis, statistics over time windows, plotting |
 | `PyEvoMotion`         | `src/core.rs`   | The public class users instantiate; constructor logic |
+| `SequenceRecord`, `FastaReader` | `src/fasta.rs` | FASTA records and streaming reader (replaces Biopython) |
 | `_main`               | `src/cli.rs`    | Console entry point (`PyEvoMotion = "PyEvoMotion:_main"`) |
 
 Inheritance is a single chain, `PyEvoMotion -> _PyEvoMotionCore ->

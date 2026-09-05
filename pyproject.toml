@@ -8,12 +8,18 @@ authors = [
     { name = "Lucas Goiriz", email = "lucas.goiriz@csic.es" },
 ]
 keywords = ["evolution", "anomalous diffusion", "bioinformatics"]
+# Runtime: the extension drives pandas (data model, TSV I/O), numpy (array
+# interchange) and matplotlib (plots). FASTA I/O, alignment and statistics
+# are implemented in Rust.
 dependencies = [
-    "bio>=1.7.1,<2.0.0",
     "matplotlib>=3.9.1,<4.0.0",
+    "numpy>=1.26,<3.0.0",
     "pandas>=2.2.2,<3.0.0",
+]
+
+[dependency-groups]
+dev = [
     "pytest>=8.2.2,<9.0.0",
-    "scikit-learn>=1.5.1,<2.0.0",
 ]
 
 [project.optional-dependencies]

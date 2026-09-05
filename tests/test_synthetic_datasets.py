@@ -2,7 +2,7 @@ import os
 import pytest
 import subprocess
 import pandas as pd
-from Bio import SeqIO
+from PyEvoMotion import PyEvoMotionParser
 from datetime import datetime
 from .helpers.test_UK_USA_dataset_helpers import SAMPLE_SEED, use_full_data
 
@@ -29,9 +29,9 @@ def subsample_dataset(seq_file, meta_file, out_dir, n=CI_SAMPLE_SIZE, seed=SAMPL
     subset.to_csv(sub_tsv, sep="\t", index=False)
     wanted = set(subset["id"])
     with open(sub_fasta, "w") as out:
-        for rec in SeqIO.parse(seq_file, "fasta"):
+        for rec in PyEvoMotionParser.read_fasta(seq_file):
             if rec.id in wanted:
-                SeqIO.write(rec, out, "fasta")
+                out.write(rec.format())
     return sub_fasta, sub_tsv
 
 def run_synthetic_test(setup, seq_file, meta_file, output_prefix, output_dir="test4"):

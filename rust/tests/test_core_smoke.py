@@ -251,8 +251,7 @@ def test_filter_by_position_window_rules():
     excludes a deletion starting at the first reference base and keeps an
     insertion after the last one — the counting behaviour of every release
     before 0.2.0, preserved when positions became 1-based."""
-    from Bio.Seq import Seq
-    from Bio.SeqRecord import SeqRecord
+    from PyEvoMotion import SequenceRecord
 
     class Bare(PyEvoMotion):
         def __init__(self):  # skip file parsing; we set the state by hand
@@ -260,7 +259,7 @@ def test_filter_by_position_window_rules():
 
     def run(instr, start=0, end=0):
         p = Bare()
-        p.reference = SeqRecord(Seq("A" * 10), id="ref")
+        p.reference = SequenceRecord("ref", "A" * 10)
         p.data = pd.DataFrame({"id": ["x"], "mutation instructions": [instr]})
         p.filter_by_position(start, end)
         return p.data["mutation instructions"].iloc[0] if len(p.data) else None

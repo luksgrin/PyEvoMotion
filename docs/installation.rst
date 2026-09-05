@@ -97,7 +97,7 @@ This package has been developed using ``pytest`` for testing. To run the tests, 
    pip download --no-deps --no-binary :all: PyEvoMotion
    tar -xvzf pyevomotion-*.tar.gz
    cd pyevomotion-*/
-   pip install .
+   pip install . pytest
    pytest
 
 .. note::
