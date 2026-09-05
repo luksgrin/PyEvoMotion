@@ -98,7 +98,7 @@ fn r2_score(y: &Array1<f64>, y_pred: &Array1<f64>, w: Option<&Array1<f64>>) -> f
 
 // ─────────────────── callables returned in result dicts ───────────────────
 
-#[pyclass(name = "_LinearCallable")]
+#[pyclass(name = "_LinearCallable", module = "PyEvoMotion")]
 pub struct LinearCallable {
     #[pyo3(get)]
     pub m: f64,
@@ -127,7 +127,7 @@ impl LinearCallable {
     }
 }
 
-#[pyclass(name = "_PowerLawCallable")]
+#[pyclass(name = "_PowerLawCallable", module = "PyEvoMotion")]
 pub struct PowerLawCallable {
     #[pyo3(get)]
     pub d: f64,
@@ -226,7 +226,7 @@ impl LeastSquaresProblem<f64, Dyn, U2> for PowerLawProblem {
 
 // ─────────────────────── PyEvoMotionBase ───────────────────────
 
-#[pyclass(subclass, name = "PyEvoMotionBase")]
+#[pyclass(subclass, name = "PyEvoMotionBase", module = "PyEvoMotion")]
 pub struct PyEvoMotionBase;
 
 #[pymethods]

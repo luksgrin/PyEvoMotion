@@ -58,6 +58,13 @@ keyword arguments of the `PyEvoMotion` constructor.
   runs it on demand, one test per job. Random samples in the tests use a
   fixed seed.
 
+### Documentation
+
+- The site is built and deployed by the `Docs` workflow from the `docs/`
+  sources on `prod` (Sphinx plus rustdoc under `/rustdoc/`), replacing the
+  hand-pushed `docs-gh-pages` branch and `build_docs.sh`. The unused
+  Markdown build is gone.
+
 ### Fixed
 
 - `-ep` plot export failed with `NameError: 'model'`.

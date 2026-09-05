@@ -242,7 +242,7 @@ fn drop_missing_instructions<'py>(
 // PyEvoMotionParser extends PyEvoMotionBase so that the user-facing
 // PyEvoMotion(_PyEvoMotionCore, PyEvoMotionParser) multi-inheritance has
 // a shared layout root (both bases trace back to PyEvoMotionBase).
-#[pyclass(subclass, extends = PyEvoMotionBase, name = "PyEvoMotionParser")]
+#[pyclass(subclass, extends = PyEvoMotionBase, name = "PyEvoMotionParser", module = "PyEvoMotion")]
 pub struct PyEvoMotionParser;
 
 #[pymethods]

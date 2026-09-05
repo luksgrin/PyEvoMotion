@@ -122,7 +122,7 @@ fn pdict_subset<'py>(
 // (PyEvoMotion(_PyEvoMotionCore, PyEvoMotionParser)) into a single
 // inheritance chain so the public PyEvoMotion class can live in Rust.
 // The MRO is unchanged: PyEvoMotion → Core → Parser → Base.
-#[pyclass(subclass, extends = PyEvoMotionParser, name = "_PyEvoMotionCore")]
+#[pyclass(subclass, extends = PyEvoMotionParser, name = "_PyEvoMotionCore", module = "PyEvoMotion")]
 pub struct PyEvoMotionCore;
 
 #[pymethods]
@@ -821,7 +821,7 @@ impl PyEvoMotionCore {
 // Python attributes (data, reference, dt, dt_ratio, origin). The pre-port
 // concrete class was a Python subclass, which provided __dict__ implicitly;
 // now that PyEvoMotion is the instantiated Rust class it must declare it.
-#[pyclass(subclass, dict, extends = PyEvoMotionCore, name = "PyEvoMotion")]
+#[pyclass(subclass, dict, extends = PyEvoMotionCore, name = "PyEvoMotion", module = "PyEvoMotion")]
 pub struct PyEvoMotion;
 
 #[pymethods]
