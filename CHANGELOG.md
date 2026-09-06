@@ -63,7 +63,11 @@ deterministic ones (**results are now identical on every platform**):
   longer differ between Apple Silicon and x86_64 machines as they did
   before. Fitted parameters move by about 1e-14 relative.
 
-Means, window sizes, window dates and the set of rows are unchanged.
+Means, window sizes, window dates and the set of rows are unchanged. The
+data and statistics tables are byte-identical across platforms; the fitted
+parameters in `<out>_regression_results.json` still depend on the
+platform's math library through exp/log and the t and F distributions,
+and agree to about 1e-9 relative (the golden tests check exactly that).
 
 ### Removed dependencies
 

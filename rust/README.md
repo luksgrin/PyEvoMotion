@@ -40,10 +40,13 @@ boundary:
   through untouched. `table.to_tsv(path)` writes exactly what
   `to_csv(sep="\t", index=False)` would.
 - Row order is a stable sort by collection date and the per-window variance
-  uses fixed-order arithmetic, so outputs are identical on every platform;
-  `tests/test_golden_outputs.py` and the dataset tests compare bytes with
-  the committed goldens under `tests/data/golden/` (regenerate with
-  `PYEVOMOTION_UPDATE_GOLDENS=1` after an intentional change).
+  uses fixed-order arithmetic, so the data and statistics tables are
+  byte-identical on every platform; `tests/test_golden_outputs.py` and the
+  dataset tests compare them with the committed goldens under
+  `tests/data/golden/` (regenerate with `PYEVOMOTION_UPDATE_GOLDENS=1`
+  after an intentional change). Fitted models go through the platform's
+  libm (exp/log, t and F distributions) and are compared numerically, to
+  1e-9 relative.
 
 ## Build & install (dev)
 
