@@ -45,8 +45,8 @@ boundary:
   dataset tests compare them with the committed goldens under
   `tests/data/golden/` (regenerate with `PYEVOMOTION_UPDATE_GOLDENS=1`
   after an intentional change). Fitted models go through the platform's
-  libm (exp/log, t and F distributions) and are compared numerically, to
-  1e-9 relative.
+  libm (exp/log, t and F distributions) and are compared numerically: linear
+  fits agree to ~1e-12, the iterative power-law fits to ~1e-6 relative.
 
 ## Build & install (dev)
 

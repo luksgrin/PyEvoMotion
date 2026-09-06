@@ -66,8 +66,9 @@ deterministic ones (**results are now identical on every platform**):
 Means, window sizes, window dates and the set of rows are unchanged. The
 data and statistics tables are byte-identical across platforms; the fitted
 parameters in `<out>_regression_results.json` still depend on the
-platform's math library through exp/log and the t and F distributions,
-and agree to about 1e-9 relative (the golden tests check exactly that).
+platform's math library through exp/log and the t and F distributions:
+linear fits agree to about 1e-12 relative and the iterative power-law fits
+to about 1e-6 (the golden tests check exactly that).
 
 ### Removed dependencies
 

@@ -60,8 +60,11 @@ def check_golden(output_prefix: str, name: str, files=STATS_FILES) -> None:
             assert got == exp, f"{got_path} differs from the golden {exp_path}. {hint}"
 
 
-# Relative tolerance for fitted-model numbers (tables are compared byte for byte).
-REL_TOL = 1e-9
+# Relative tolerance for fitted-model numbers (tables are compared byte for
+# byte). Linear fits agree across platforms to ~1e-12; the power-law fit is
+# an iterative Levenberg-Marquardt optimisation whose stopping point moves
+# with the platform's exp/log, observed up to ~3e-7 between arm64 and x86_64.
+REL_TOL = 1e-6
 ABS_TOL = 1e-12
 
 
