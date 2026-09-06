@@ -5,6 +5,7 @@ import pandas as pd
 from PyEvoMotion import PyEvoMotionParser
 from datetime import datetime
 from .helpers.test_UK_USA_dataset_helpers import SAMPLE_SEED, use_full_data
+from .helpers.golden import check_golden
 
 # Each synthetic dataset has 2,001 sequences. Aligning all of them takes
 # ~30 min per dataset on a GitHub runner, so by default the tests run on a
@@ -64,6 +65,9 @@ def run_synthetic_test(setup, seq_file, meta_file, output_prefix, output_dir="te
         pytest.fail(f"PyEvoMotion failed with error: {result.stderr}")
 
     assert os.path.exists(f"tests/data/{output_dir}/output/{_date}/{output_prefix}_plots.pdf")
+    if not use_full_data():
+        # Fixed-seed sample: statistics and fitted models are deterministic.
+        check_golden(f"tests/data/{output_dir}/output/{_date}/{output_prefix}", f"synthetic_{output_prefix}")
 
 def test_S1_dataset(setup):
     """Tests that PyEvoMotion can process the S1 synthetic dataset correctly."""

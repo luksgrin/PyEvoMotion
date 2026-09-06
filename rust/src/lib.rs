@@ -4,8 +4,13 @@ use pyo3::prelude::*;
 mod base;
 mod cli;
 mod core;
+mod csv_read;
+mod csv_write;
+mod dates;
 mod fasta;
 mod parser;
+mod stats;
+mod table;
 
 /// PyEvoMotion — assess the evolution dynamics of related DNA sequences.
 ///
@@ -15,6 +20,7 @@ mod parser;
 /// * ``PyEvoMotionBase`` — math/utility base.
 /// * ``PyEvoMotionParser`` — input parsing (FASTA/metadata, alignment).
 /// * ``SequenceRecord`` / ``FastaReader`` — FASTA records and streaming reader.
+/// * ``Table`` — the internal column store behind ``PyEvoMotion.data``.
 /// * ``_main`` — the command-line entry point.
 #[pymodule]
 fn PyEvoMotion(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -26,6 +32,7 @@ fn PyEvoMotion(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<parser::PyEvoMotionParser>()?;
     m.add_class::<fasta::SequenceRecord>()?;
     m.add_class::<fasta::FastaReader>()?;
+    m.add_class::<table::TablePy>()?;
     m.add_function(wrap_pyfunction!(cli::_main, m)?)?;
 
     // Declare __all__ so maturin's generated `from .PyEvoMotion import *`
@@ -39,6 +46,7 @@ fn PyEvoMotion(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
             "PyEvoMotionParser",
             "SequenceRecord",
             "FastaReader",
+            "Table",
             "_PyEvoMotionCore",
             "_main",
         ],

@@ -34,6 +34,37 @@ ported to the Rust code base:
 All of them round-trip through `-xj`/`-ij`. The same options exist as
 keyword arguments of the `PyEvoMotion` constructor.
 
+### Internals in Rust: the data pipeline no longer runs on pandas
+
+Between reading the inputs and returning results, the pipeline now works
+on an internal Rust column store (`rust/src/table.rs`, design in
+`rust/DESIGN_internal_table.md`): TSV/CSV reading with pandas' inference
+rules, date parsing, filters, the alignment-result merge, per-sequence
+counts, the per-window statistics and the TSV writer are all Rust.
+pandas is used only at the API boundary: `instance.data` is still a
+`pandas.DataFrame` (materialised when you read it, re-ingested if you
+assign or edit it), `analysis()` still returns `(DataFrame, dict)`, and
+`parse_metadata` / `parse_mutation_data` / `get_differing_mutations` /
+`compute_stats` still return DataFrames. Subclasses that read and assign
+`self.data` keep working unchanged. New for subclass authors:
+`PyEvoMotion.Table` with `Table.from_pandas(df)`, `table.to_pandas()`,
+`table.to_tsv(path)`, and `self.data = table`.
+
+Two accidental behaviours of the pandas implementation were replaced by
+deterministic ones (**results are now identical on every platform**):
+
+- **Row order**: sequences sharing a collection date used to be ordered by
+  numpy's unstable quicksort; they now keep the order of the metadata
+  file (stable sort by date). `<out>.tsv` rows may therefore appear in a
+  different order than with 0.1.x.
+- **Variance**: the per-window sample variance is computed with a fixed
+  summation order and no fused multiply-add. Values differ from 0.1.x in
+  the last digits (about 1e-15 absolute on the bundled data), and no
+  longer differ between Apple Silicon and x86_64 machines as they did
+  before. Fitted parameters move by about 1e-14 relative.
+
+Means, window sizes, window dates and the set of rows are unchanged.
+
 ### Removed dependencies
 
 - Biopython is no longer used. FASTA files are read by a streaming Rust
@@ -85,6 +116,9 @@ keyword arguments of the `PyEvoMotion` constructor.
 - A filter that emptied the dataset raised `KeyError: 'mutation
   instructions'` instead of the "dataset empty" message.
 - A reference id missing from the input FASTA raises a clear error.
+- `-load` combined with `-dr`/`-f` and `-recount` (or a loaded file without
+  count columns) produced float count columns with NaN holes when the
+  filtered table had a gapped index; counts are now computed row-wise.
 
 ## 0.1.3
 

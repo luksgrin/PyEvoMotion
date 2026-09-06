@@ -1,12 +1,15 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use mafft::{AlignmentMode, MafftEngine, Sequence, SequenceSet, SeqType};
-use pyo3::exceptions::PyValueError;
+use pyo3::exceptions::{PyAttributeError, PyIndexError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyDict, PyList, PyTuple, PyType};
 
 use crate::base::PyEvoMotionBase;
 use crate::fasta::{self, FastaReader, SequenceRecord};
+use crate::csv_read;
+use crate::dates;
+use crate::table::{self, Column, Table, TablePy, TimeUnit};
 
 // ─────────────────────── pure-Rust algorithms ───────────────────────
 
@@ -200,51 +203,24 @@ fn verbosity(slf: &Bound<'_, PyAny>) -> i64 {
         .unwrap_or(0)
 }
 
-/// Drop rows whose "mutation instructions" cell is missing (NaN). This
-/// happens when a metadata id has no sequence in the FASTA file (the merge
-/// in parse_data is a left join) or when a loaded TSV has empty cells.
-/// Downstream code extracts that column as lists of strings, so leaving
-/// NaN in place would fail with an opaque TypeError; instead warn on stderr
-/// with the count and a few example ids, and continue with the rest.
-fn drop_missing_instructions<'py>(
-    py: Python<'py>,
-    data: &Bound<'py, PyAny>,
-) -> PyResult<Bound<'py, PyAny>> {
-    let col = data.call_method1("__getitem__", ("mutation instructions",))?;
-    let missing = col.call_method0("isna")?;
-    let n_missing: i64 = missing.call_method0("sum")?.extract()?;
-    if n_missing == 0 {
-        return Ok(data.clone());
-    }
-    let ids: Vec<String> = data
-        .call_method1("__getitem__", (missing.clone(),))?
-        .call_method1("__getitem__", ("id",))?
-        .call_method0("tolist")?
-        .extract()?;
-    let shown: Vec<&str> = ids.iter().take(10).map(String::as_str).collect();
-    eprintln!(
-        "Warning: {} sequence(s) have no mutation instructions (id present in the metadata but not in the FASTA file, or empty cell) and will be excluded from the analysis.",
-        n_missing
-    );
-    eprintln!(
-        "         Example ids: {}{}",
-        shown.join(", "),
-        if ids.len() > shown.len() { ", ..." } else { "" }
-    );
-    let keep = missing.call_method0("__invert__")?;
-    let kept = data.call_method1("__getitem__", (keep,))?;
-    let kw = PyDict::new_bound(py);
-    kw.set_item("drop", true)?;
-    kept.call_method("reset_index", (), Some(&kw))
-}
-
 // ─────────────────────── pyclass ───────────────────────
 
 // PyEvoMotionParser extends PyEvoMotionBase so that the user-facing
 // PyEvoMotion(_PyEvoMotionCore, PyEvoMotionParser) multi-inheritance has
 // a shared layout root (both bases trace back to PyEvoMotionBase).
 #[pyclass(subclass, extends = PyEvoMotionBase, name = "PyEvoMotionParser", module = "PyEvoMotion")]
-pub struct PyEvoMotionParser;
+#[derive(Default)]
+pub struct PyEvoMotionParser {
+    // The instance's data lives in exactly one of two states (design doc §4.2):
+    //   Rust-owned:     table = Some, df = None
+    //   pandas-visible: df = Some (the DataFrame handed out through `.data`, or
+    //                   assigned to it, is the truth until the next Rust stage
+    //                   re-ingests it); table may be stale and is ignored.
+    // Before __init__ has run both are None and `.data` raises AttributeError,
+    // as an unset attribute did before.
+    pub(crate) table: Option<Table>,
+    pub(crate) df: Option<Py<PyAny>>,
+}
 
 #[pymethods]
 impl PyEvoMotionParser {
@@ -255,7 +231,54 @@ impl PyEvoMotionParser {
         _args: &Bound<'_, PyTuple>,
         _kwargs: Option<&Bound<'_, PyDict>>,
     ) -> (Self, PyEvoMotionBase) {
-        (Self, PyEvoMotionBase)
+        (Self::default(), PyEvoMotionBase)
+    }
+
+    // data property ------------------------------------------------------
+    /// The parsed dataset as a ``pandas.DataFrame``. Reading it materialises
+    /// the internal table (once, until the next pipeline stage); assigning a
+    /// DataFrame or a :class:`Table` replaces the dataset.
+    #[getter(data)]
+    fn get_data<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
+        let py = slf.py();
+        {
+            let this = slf.borrow();
+            if let Some(df) = &this.df {
+                return Ok(df.bind(py).clone());
+            }
+        }
+        let df = {
+            let this = slf.borrow();
+            match &this.table {
+                Some(t) => t.to_pandas(py)?,
+                None => {
+                    return Err(PyAttributeError::new_err(format!(
+                        "'{}' object has no attribute 'data'",
+                        slf.get_type().name()?
+                    )))
+                }
+            }
+        };
+        slf.borrow_mut().df = Some(df.clone().unbind());
+        Ok(df)
+    }
+
+    #[setter(data)]
+    fn set_data(slf: &Bound<'_, Self>, value: Bound<'_, PyAny>) -> PyResult<()> {
+        let py = slf.py();
+        if let Ok(t) = value.downcast::<TablePy>() {
+            let inner = t.borrow().inner.clone_ref(py);
+            let mut this = slf.borrow_mut();
+            this.table = Some(inner);
+            this.df = None;
+        } else if table::is_dataframe(py, &value)? {
+            let mut this = slf.borrow_mut();
+            this.df = Some(value.unbind());
+            this.table = None;
+        } else {
+            return Err(table::type_error_not_table(&value));
+        }
+        Ok(())
     }
 
     // __init__: orchestrates parse_metadata → parse_sequence_by_id →
@@ -287,13 +310,17 @@ impl PyEvoMotionParser {
         match load_mutation_instructions {
             Some(path) => {
                 log_info(py, "Loading mutation instructions from TSV")?;
+                // Dispatch through Python so an override of parse_mutation_data
+                // is honoured; the default returns a DataFrame built from the
+                // Rust reader.
                 let data = slf.call_method1("parse_mutation_data", (path,))?;
-                slf.setattr("data", drop_missing_instructions(py, &data)?)?;
+                slf.setattr("data", data)?;
+                Self::with_table(slf, |py, t| drop_missing_instructions_table(py, t))?;
             }
             None => {
                 log_info(py, "Parsing metadata file")?;
-                let data = parse_metadata_inner(py, input_meta)?;
-                slf.setattr("data", data)?;
+                let table = parse_metadata_inner(py, input_meta)?;
+                Self::store_table(slf, table);
             }
         }
 
@@ -312,8 +339,14 @@ impl PyEvoMotionParser {
 
         if load_mutation_instructions.is_none() {
             log_info(py, "Parsing FASTA file, aligning sequences and calling mutations")?;
-            let data_attr = slf.getattr("data")?;
-            let ids = data_attr.call_method1("__getitem__", ("id",))?;
+            // parse_data keeps its public signature (a pandas Series of ids).
+            let ids: Vec<Option<String>> = Self::with_table(slf, |_, t| match t.column("id") {
+                Some(Column::Str(d)) => Ok(d.iter().map(|s| s.map(str::to_string)).collect()),
+                Some(_) => Err(PyValueError::new_err("metadata `id` column must contain strings")),
+                None => Err(PyValueError::new_err("Metadata file must contain an \"id\" column")),
+            })?;
+            let pd = py.import_bound("pandas")?;
+            let ids = pd.call_method1("Series", (ids,))?;
             slf.call_method1("parse_data", (input_fasta, ids))?;
         }
 
@@ -346,11 +379,19 @@ impl PyEvoMotionParser {
                 })?
                 .into(),
             None => {
-                let data_attr = slf.getattr("data")?;
-                let iloc = data_attr.getattr("iloc")?;
-                let first_row = iloc.call_method1("__getitem__", (0i64,))?;
-                let first_id: String =
-                    first_row.call_method1("__getitem__", ("id",))?.extract()?;
+                let first_id: String = Self::with_table(slf, |_, t| {
+                    if t.nrows() == 0 {
+                        return Err(PyIndexError::new_err(
+                            "single positional indexer is out-of-bounds",
+                        ));
+                    }
+                    match t.column("id") {
+                        Some(Column::Str(d)) => Ok(d.get(0).unwrap_or("").to_string()),
+                        Some(Column::Int64(v)) => Ok(v[0].to_string()),
+                        Some(_) => Err(PyValueError::new_err("metadata `id` column must contain strings")),
+                        None => Err(PyValueError::new_err("Metadata file must contain an \"id\" column")),
+                    }
+                })?;
                 fasta::find_by_id(input_fasta, &first_id)?
                     .ok_or_else(|| {
                         PyValueError::new_err(format!(
@@ -372,87 +413,98 @@ impl PyEvoMotionParser {
         selection: Bound<'py, PyAny>,
     ) -> PyResult<()> {
         let py = slf.py();
+        // Dispatched through Python so overrides of get_differing_mutations
+        // are honoured; the result is a small DataFrame (id, instructions,
+        // N count) that is ingested and left-merged onto the table.
         let muts = slf.call_method1("get_differing_mutations", (input_fasta, selection))?;
-        let data = slf.getattr("data")?;
-        let kw = PyDict::new_bound(py);
-        kw.set_item("on", "id")?;
-        kw.set_item("how", "left")?;
-        let merged = data.call_method("merge", (muts,), Some(&kw))?;
-        let kw = PyDict::new_bound(py);
-        kw.set_item("drop", true)?;
-        let reset = merged.call_method("reset_index", (), Some(&kw))?;
-        let complete = drop_missing_instructions(py, &reset)?;
-        slf.setattr("data", complete)?;
-        Ok(())
+        let right = Table::from_pandas(py, &muts)?;
+        Self::with_table(slf, |py, t| {
+            *t = left_merge_on_id(py, t, &right)?;
+            drop_missing_instructions_table(py, t)
+        })
     }
 
     // filter_by_daterange -----------------------------------------------
+    /// Keep rows with `start <= date <= end`, each bound clamped to the data's
+    /// own range (a bound outside the data is ignored). `None` leaves a bound
+    /// open. Raises if the effective start is after the effective end.
     fn filter_by_daterange<'py>(
         slf: &Bound<'py, Self>,
         start: Option<Bound<'py, PyAny>>,
         end: Option<Bound<'py, PyAny>>,
     ) -> PyResult<()> {
-        let data = slf.getattr("data")?;
-        let dates = data.call_method1("__getitem__", ("date",))?;
-        let dmin = dates.call_method0("min")?;
-        let dmax = dates.call_method0("max")?;
-
-        let start_v = match start {
-            Some(s) if !s.is_none() => {
-                let cmp: bool = s.gt(&dmin)?;
-                if cmp { s } else { dmin }
-            }
-            _ => dmin,
+        let py = slf.py();
+        let pd = py.import_bound("pandas")?;
+        let to_ns = |obj: &Bound<'py, PyAny>| -> PyResult<i64> {
+            pd.call_method1("Timestamp", (obj,))?.getattr("value")?.extract()
         };
-        let end_v = match end {
-            Some(e) if !e.is_none() => {
-                let cmp: bool = e.lt(&dmax)?;
-                if cmp { e } else { dmax }
-            }
-            _ => dmax,
+        let start_ns = match &start {
+            Some(s) if !s.is_none() => Some(to_ns(s)?),
+            _ => None,
         };
-
-        if start_v.gt(&end_v)? {
-            return Err(PyValueError::new_err(
-                "Start date must be smaller than end date",
-            ));
-        }
-
-        let mask_lo = dates.call_method1("__ge__", (start_v,))?;
-        let mask_hi = dates.call_method1("__le__", (end_v,))?;
-        let mask = mask_lo.call_method1("__and__", (mask_hi,))?;
-        let filtered = data.call_method1("__getitem__", (mask,))?;
-        slf.setattr("data", filtered)?;
-        Ok(())
+        let end_ns = match &end {
+            Some(e) if !e.is_none() => Some(to_ns(e)?),
+            _ => None,
+        };
+        Self::with_table(slf, |py, t| {
+            let ns: Vec<i64> = match t.column("date") {
+                Some(Column::DatetimeNs { ns, .. }) => ns.clone(),
+                Some(other) => dates::to_datetime_ns(py, other)?,
+                None => return Err(PyValueError::new_err("KeyError: 'date'")),
+            };
+            let valid = ns.iter().copied().filter(|&v| v != table::NAT);
+            let (dmin, dmax) = match (valid.clone().min(), valid.max()) {
+                (Some(a), Some(b)) => (a, b),
+                // No dates at all (empty data): pandas' NaT comparisons are all
+                // False, so nothing is kept and no error is raised.
+                _ => {
+                    *t = t.take(py, &[]);
+                    return Ok(());
+                }
+            };
+            let start_v = match start_ns {
+                Some(s) if s > dmin => s,
+                _ => dmin,
+            };
+            let end_v = match end_ns {
+                Some(e) if e < dmax => e,
+                _ => dmax,
+            };
+            if start_v > end_v {
+                return Err(PyValueError::new_err(
+                    "Start date must be smaller than end date",
+                ));
+            }
+            let rows: Vec<usize> = (0..ns.len())
+                .filter(|&i| ns[i] != table::NAT && start_v <= ns[i] && ns[i] <= end_v)
+                .collect();
+            *t = t.take(py, &rows);
+            Ok(())
+        })
     }
 
     // filter_by_position ------------------------------------------------
+    /// Restrict mutations to a genome window. Window membership on 1-based
+    /// positions: substitutions `start <= P < end`, insertions/deletions
+    /// `start < P <= end` (the indel rule reproduces the counting behaviour
+    /// of every release before 0.2.0, when indel positions were written
+    /// 0-based; a deletion starting at the first base stays excluded and an
+    /// insertion after the last base stays included). Rows whose mutations
+    /// all fall outside the window are dropped; rows that had no mutations
+    /// are kept. `end <= 0` means "to the end of the reference".
     fn filter_by_position<'py>(
         slf: &Bound<'py, Self>,
         start: i64,
         end: i64,
     ) -> PyResult<()> {
-        let py = slf.py();
-        let pd = py.import_bound("pandas")?;
-
-        // If an earlier filter already emptied the dataset, there is nothing to
-        // position-filter. Return early so the caller's
-        // _check_dataset_is_not_empty surfaces the friendly "dataset empty"
-        // message rather than a confusing KeyError from the column rebuild on
-        // an empty frame.
-        if slf.getattr("data")?.getattr("empty")?.extract::<bool>()? {
+        // Early return on an already-empty dataset so the caller's
+        // _check_dataset_is_not_empty surfaces the friendly message.
+        if Self::with_table(slf, |_, t| Ok(t.is_empty()))? {
             return Ok(());
         }
-
-        let reference = slf.getattr("reference")?;
-        let ref_seq_len: i64 = reference
-            .getattr("seq")?
-            .call_method0("__len__")?
-            .extract()?;
-
+        let ref_seq_len = Self::reference_len(slf)?;
         let start = start.max(1);
         let end_eff = if end > 0 { end } else { ref_seq_len + 1 };
-
         if start >= end_eff {
             return Err(PyValueError::new_err(
                 "Start position must be smaller than end position",
@@ -462,18 +514,6 @@ impl PyEvoMotionParser {
             return Err(PyValueError::new_err("Start position is out of range"));
         }
 
-        // Window membership, on 1-based positions.
-        //   substitutions:            start <= pos <  end
-        //   insertions and deletions: start <  pos <= end
-        // The indel rule reproduces the counting behaviour of every release
-        // before 0.2.0, where indel positions were written 0-based but went
-        // through the substitution test above. Keeping it means the switch
-        // to 1-based coordinates only changes how positions are *written*,
-        // not which mutations are counted: a deletion that starts at the
-        // first reference base (a sequence lacking 5' coverage) stays
-        // excluded, an insertion after the last reference base stays
-        // included. Whether terminal indels should be counted at all is an
-        // open question (see luksgrin/PyEvoMotion#1); revisit both together.
         let in_window = |m: &str| -> bool {
             let pos: i64 = m
                 .split('_')
@@ -487,101 +527,97 @@ impl PyEvoMotionParser {
             }
         };
 
-        // Build the new "mutation instructions" column row-by-row in Rust,
-        // then assign as a list (length-aligned with self.data).
-        let data = slf.getattr("data")?;
-        let mut_instr = data.call_method1("__getitem__", ("mutation instructions",))?;
-        let lists: Vec<Vec<String>> = mut_instr.call_method0("tolist")?.extract()?;
-
-        let new_lists: Vec<Vec<String>> = lists
-            .iter()
-            .map(|x| {
-                if x.is_empty() {
-                    vec!["NO_MUTATION".to_string()]
-                } else {
-                    x.iter()
-                        .filter(|m| in_window(m))
-                        .cloned()
-                        .collect::<Vec<_>>()
+        Self::with_table(slf, |py, t| {
+            let lists = match t.column("mutation instructions") {
+                Some(Column::StrList(v)) => v,
+                Some(_) => return Err(PyValueError::new_err(
+                    "`mutation instructions` must be a column of lists of strings",
+                )),
+                None => return Err(PyValueError::new_err("KeyError: 'mutation instructions'")),
+            };
+            let mut keep: Vec<usize> = Vec::with_capacity(lists.len());
+            let mut new_lists: Vec<Option<Vec<String>>> = Vec::with_capacity(lists.len());
+            for (i, item) in lists.iter().enumerate() {
+                match item {
+                    // Missing cells pass through untouched (they are dropped
+                    // with a warning elsewhere).
+                    None => {
+                        keep.push(i);
+                        new_lists.push(None);
+                    }
+                    Some(x) if x.is_empty() => {
+                        keep.push(i);
+                        new_lists.push(Some(Vec::new()));
+                    }
+                    Some(x) => {
+                        let filtered: Vec<String> =
+                            x.iter().filter(|m| in_window(m)).cloned().collect();
+                        if !filtered.is_empty() {
+                            keep.push(i);
+                            new_lists.push(Some(filtered));
+                        }
+                    }
                 }
-            })
-            .collect();
-
-        // Preserve the existing index when assigning back.
-        let idx = data.getattr("index")?;
-        let kw = PyDict::new_bound(py);
-        kw.set_item("index", idx.clone())?;
-        let new_series = pd.call_method("Series", (new_lists.clone(),), Some(&kw))?;
-        data.call_method1("__setitem__", ("mutation instructions", new_series))?;
-
-        // Filter to rows whose new mutation list is non-empty.
-        let mask: Vec<bool> = new_lists.iter().map(|x| !x.is_empty()).collect();
-        let kw = PyDict::new_bound(py);
-        kw.set_item("index", idx)?;
-        let mask_series = pd.call_method("Series", (mask,), Some(&kw))?;
-        let filtered = data.call_method1("__getitem__", (mask_series,))?;
-        slf.setattr("data", filtered.clone())?;
-
-        // Replace ["NO_MUTATION"] with []
-        let mut_instr2 = filtered.call_method1("__getitem__", ("mutation instructions",))?;
-        let lists2: Vec<Vec<String>> = mut_instr2.call_method0("tolist")?.extract()?;
-        let final_lists: Vec<Vec<String>> = lists2
-            .into_iter()
-            .map(|x| {
-                if x.len() == 1 && x[0] == "NO_MUTATION" {
-                    Vec::new()
-                } else {
-                    x
-                }
-            })
-            .collect();
-        let idx2 = filtered.getattr("index")?;
-        let kw = PyDict::new_bound(py);
-        kw.set_item("index", idx2)?;
-        let final_series = pd.call_method("Series", (final_lists,), Some(&kw))?;
-        filtered.call_method1("__setitem__", ("mutation instructions", final_series))?;
-
-        Ok(())
+            }
+            *t = t.take(py, &keep);
+            t.set_column("mutation instructions", Column::StrList(new_lists));
+            Ok(())
+        })
     }
 
     // filter_columns ----------------------------------------------------
+    /// Keep rows whose value in each filter key matches the given value(s),
+    /// interpreted as regular expressions with `*` meaning "anything"
+    /// (pandas `str.contains(regex=True)` semantics). Keys that are not
+    /// columns are ignored.
     fn filter_columns<'py>(
         slf: &Bound<'py, Self>,
         filters: Bound<'py, PyDict>,
     ) -> PyResult<()> {
-        let py = slf.py();
-        let mut current = slf.getattr("data")?;
-        let columns: Vec<String> = current
-            .getattr("columns")?
-            .call_method0("tolist")?
-            .extract()?;
-        let cols_set: HashSet<String> = columns.into_iter().collect();
-
+        let mut specs: Vec<(String, String)> = Vec::new();
         for (k, v) in filters.iter() {
             let key: String = k.extract()?;
-            if !cols_set.contains(&key) {
-                continue;
-            }
             let vals: Vec<String> = if let Ok(s) = v.extract::<String>() {
                 vec![s]
             } else {
                 v.extract()?
             };
-            let regex_pattern = vals
+            let pattern = vals
                 .iter()
                 .map(|val| val.replace('*', ".*"))
                 .collect::<Vec<_>>()
                 .join("|");
-
-            let col_series = current.call_method1("__getitem__", (&key,))?;
-            let str_acc = col_series.getattr("str")?;
-            let kw = PyDict::new_bound(py);
-            kw.set_item("regex", true)?;
-            let mask = str_acc.call_method("contains", (regex_pattern,), Some(&kw))?;
-            current = current.call_method1("__getitem__", (mask,))?;
+            specs.push((key, pattern));
         }
-        slf.setattr("data", current)?;
-        Ok(())
+        Self::with_table(slf, |py, t| {
+            for (key, pattern) in &specs {
+                let rows: Vec<usize> = match t.column(key) {
+                    None => continue,
+                    Some(Column::Str(d)) => {
+                        if d.iter().any(|c| c.is_none()) {
+                            return Err(PyValueError::new_err(
+                                "Cannot mask with non-boolean array containing NA / NaN values",
+                            ));
+                        }
+                        let matcher = Matcher::new(py, pattern)?;
+                        let mut rows = Vec::new();
+                        for i in 0..d.len() {
+                            if matcher.is_match(py, d.get(i).unwrap_or(""))? {
+                                rows.push(i);
+                            }
+                        }
+                        rows
+                    }
+                    Some(_) => {
+                        return Err(PyAttributeError::new_err(
+                            "Can only use .str accessor with string values!",
+                        ))
+                    }
+                };
+                *t = t.take(py, &rows);
+            }
+            Ok(())
+        })
     }
 
     // _get_consecutives -------------------------------------------------
@@ -784,100 +820,227 @@ impl PyEvoMotionParser {
     /// columns plus ``mutation instructions``, ``N count`` and the mutation
     /// counts). The ``mutation instructions`` cells are Python list literals
     /// and are parsed back into lists; empty cells become None (dropped by
-    /// the caller with a warning). Dates are parsed and rows sorted by date,
-    /// like parse_metadata.
+    /// the caller with a warning). Dates are parsed and rows sorted by date
+    /// (stable), like parse_metadata.
     #[staticmethod]
     fn parse_mutation_data<'py>(
         py: Python<'py>,
         input_tsv: &str,
     ) -> PyResult<Bound<'py, PyAny>> {
-        let pd = py.import_bound("pandas")?;
-        let ast = py.import_bound("ast")?;
-        let kw = PyDict::new_bound(py);
-        kw.set_item("sep", "\t")?;
-        let df = pd.call_method("read_csv", (input_tsv,), Some(&kw))?;
-
-        let columns: Vec<String> = df.getattr("columns")?.call_method0("tolist")?.extract()?;
-        for required in ["id", "date", "mutation instructions"] {
-            if !columns.iter().any(|c| c == required) {
-                return Err(PyValueError::new_err(format!(
-                    "Mutation instructions file {} must contain a \"{}\" column (expected a <out>.tsv written by PyEvoMotion)",
-                    input_tsv, required
-                )));
-            }
-        }
-
-        let ids: Vec<String> = df
-            .call_method1("__getitem__", ("id",))?
-            .call_method0("tolist")?
-            .extract()?;
-        let cells = df
-            .call_method1("__getitem__", ("mutation instructions",))?
-            .call_method0("tolist")?;
-        let parsed = PyList::empty_bound(py);
-        for (cell, id) in cells.iter()?.zip(ids.iter()) {
-            let cell = cell?;
-            match cell.extract::<String>() {
-                Ok(text) => {
-                    let value = ast
-                        .call_method1("literal_eval", (text.trim(),))
-                        .map_err(|e| {
-                            PyValueError::new_err(format!(
-                                "Could not parse the mutation instructions of '{}' in {}: {}",
-                                id, input_tsv, e
-                            ))
-                        })?;
-                    let items: Vec<String> = value.extract().map_err(|_| {
-                        PyValueError::new_err(format!(
-                            "Mutation instructions of '{}' in {} are not a list of strings",
-                            id, input_tsv
-                        ))
-                    })?;
-                    parsed.append(items)?;
-                }
-                // NaN (empty cell) → None; the caller drops these rows.
-                Err(_) => parsed.append(py.None())?,
-            }
-        }
-        df.call_method1("__setitem__", ("mutation instructions", parsed))?;
-
-        let dates_col = df.call_method1("__getitem__", ("date",))?;
-        let dates = pd.call_method1("to_datetime", (dates_col,))?;
-        df.call_method1("__setitem__", ("date", dates))?;
-        // Stable sort: a TSV written by PyEvoMotion is already date-ordered,
-        // and rows sharing a date must keep their order so a reload
-        // reproduces the original run exactly.
-        let kw = PyDict::new_bound(py);
-        kw.set_item("by", "date")?;
-        kw.set_item("kind", "stable")?;
-        let sorted = df.call_method("sort_values", (), Some(&kw))?;
-        let kw = PyDict::new_bound(py);
-        kw.set_item("drop", true)?;
-        sorted.call_method("reset_index", (), Some(&kw))
+        parse_mutation_data_inner(py, input_tsv)?.to_pandas(py)
     }
 
     // parse_metadata ----------------------------------------------------
+    /// Read a metadata CSV/TSV, parse its ``date`` column and sort by date
+    /// (stable; rows sharing a date keep their file order).
     #[staticmethod]
     fn parse_metadata<'py>(
         py: Python<'py>,
         input_meta: &str,
     ) -> PyResult<Bound<'py, PyAny>> {
-        parse_metadata_inner(py, input_meta)
+        parse_metadata_inner(py, input_meta)?.to_pandas(py)
     }
+}
+
+impl PyEvoMotionParser {
+    /// Replace the dataset with a Rust table (Rust-owned state; the next
+    /// `.data` access materialises a fresh DataFrame).
+    pub(crate) fn store_table(slf: &Bound<'_, Self>, table: Table) {
+        let mut this = slf.borrow_mut();
+        this.table = Some(table);
+        this.df = None;
+    }
+
+    /// True when a DataFrame has been handed out or assigned since the last
+    /// Rust stage (pandas-visible state).
+    pub(crate) fn is_pandas_visible(slf: &Bound<'_, Self>) -> bool {
+        slf.borrow().df.is_some()
+    }
+
+    /// Move the dataset out as a Table, ingesting the pandas-visible
+    /// DataFrame first if there is one (it may have been edited in place).
+    fn take_table(slf: &Bound<'_, Self>) -> PyResult<Table> {
+        let py = slf.py();
+        let (df, table) = {
+            let mut this = slf.borrow_mut();
+            (this.df.take(), this.table.take())
+        };
+        if let Some(df) = df {
+            return Table::from_pandas(py, df.bind(py));
+        }
+        match table {
+            Some(t) => Ok(t),
+            None => Err(PyAttributeError::new_err(format!(
+                "'{}' object has no attribute 'data'",
+                slf.get_type().name()?
+            ))),
+        }
+    }
+
+    /// Run `f` on the dataset as a Table and store the result back
+    /// (Rust-owned state). `f` may edit the table in place or replace it.
+    pub(crate) fn with_table<R>(
+        slf: &Bound<'_, Self>,
+        f: impl FnOnce(Python<'_>, &mut Table) -> PyResult<R>,
+    ) -> PyResult<R> {
+        let py = slf.py();
+        let mut table = Self::take_table(slf)?;
+        let result = f(py, &mut table);
+        Self::store_table(slf, table);
+        result
+    }
+
+    /// Length of the reference sequence (`self.reference.seq`).
+    pub(crate) fn reference_len(slf: &Bound<'_, Self>) -> PyResult<i64> {
+        Ok(slf.getattr("reference")?.getattr("seq")?.len()? as i64)
+    }
+}
+
+/// A compiled filter pattern: the `regex` crate when it accepts the pattern,
+/// Python's `re` otherwise (lookaround, backreferences, ...), so semantics
+/// match pandas' `str.contains(regex=True)` in both cases.
+enum Matcher {
+    Rust(regex::Regex),
+    Python(Py<PyAny>),
+}
+
+impl Matcher {
+    fn new(py: Python<'_>, pattern: &str) -> PyResult<Self> {
+        match regex::Regex::new(pattern) {
+            Ok(re) => Ok(Matcher::Rust(re)),
+            Err(_) => {
+                let re = py.import_bound("re")?.call_method1("compile", (pattern,))?;
+                Ok(Matcher::Python(re.unbind()))
+            }
+        }
+    }
+
+    fn is_match(&self, py: Python<'_>, s: &str) -> PyResult<bool> {
+        match self {
+            Matcher::Rust(re) => Ok(re.is_match(s)),
+            Matcher::Python(re) => Ok(!re.bind(py).call_method1("search", (s,))?.is_none()),
+        }
+    }
+}
+
+/// pandas `merge(right, on="id", how="left")` on tables whose `id` column is
+/// a string column: left order kept, every right match emitted (duplicates
+/// multiply rows), unmatched left rows get missing values. Integer columns
+/// that receive a missing value become float64, as in pandas.
+fn left_merge_on_id(py: Python<'_>, left: &Table, right: &Table) -> PyResult<Table> {
+    let left_ids = match left.column("id") {
+        Some(Column::Str(d)) => d,
+        _ => return Err(PyValueError::new_err("left table has no string `id` column")),
+    };
+    let right_ids = match right.column("id") {
+        Some(Column::Str(d)) => d,
+        _ => return Err(PyValueError::new_err("right table has no string `id` column")),
+    };
+    let mut positions: HashMap<&str, Vec<usize>> = HashMap::new();
+    for (i, id) in right_ids.iter().enumerate() {
+        if let Some(id) = id {
+            positions.entry(id).or_default().push(i);
+        }
+    }
+
+    // (left row, Some(right row) | None) pairs in output order.
+    let mut pairs: Vec<(usize, Option<usize>)> = Vec::with_capacity(left.nrows());
+    for (i, id) in left_ids.iter().enumerate() {
+        match id.and_then(|s| positions.get(s)) {
+            Some(rs) => pairs.extend(rs.iter().map(|&r| (i, Some(r)))),
+            None => pairs.push((i, None)),
+        }
+    }
+    let left_rows: Vec<usize> = pairs.iter().map(|(l, _)| *l).collect();
+    let any_unmatched = pairs.iter().any(|(_, r)| r.is_none());
+
+    let mut out = left.take(py, &left_rows);
+    out.reset_index(); // pandas merge returns a RangeIndex
+    for (name, col) in &right.columns {
+        if name == "id" {
+            continue;
+        }
+        let picked: Column = match col {
+            Column::StrList(v) => Column::StrList(
+                pairs.iter().map(|(_, r)| r.and_then(|r| v[r].clone())).collect(),
+            ),
+            Column::Int64(v) => {
+                if any_unmatched {
+                    Column::Float64(
+                        pairs
+                            .iter()
+                            .map(|(_, r)| r.map(|r| v[r] as f64).unwrap_or(f64::NAN))
+                            .collect(),
+                    )
+                } else {
+                    Column::Int64(pairs.iter().map(|(_, r)| v[r.unwrap()]).collect())
+                }
+            }
+            Column::Float64(v) => Column::Float64(
+                pairs.iter().map(|(_, r)| r.map(|r| v[r]).unwrap_or(f64::NAN)).collect(),
+            ),
+            Column::Str(d) => Column::Str(table::DictStr::from_options(
+                pairs.iter().map(|(_, r)| r.and_then(|r| d.get(r).map(str::to_string))),
+            )),
+            Column::DatetimeNs { ns, unit } => Column::DatetimeNs {
+                ns: pairs.iter().map(|(_, r)| r.map(|r| ns[r]).unwrap_or(table::NAT)).collect(),
+                unit: *unit,
+            },
+            other => {
+                // Not produced by get_differing_mutations; select what we can.
+                let rows: Vec<usize> = pairs.iter().map(|(_, r)| r.unwrap_or(0)).collect();
+                other.take(py, &rows)
+            }
+        };
+        out.set_column(name, picked);
+    }
+    Ok(out)
+}
+
+/// Rust side of drop_missing_instructions: rows whose "mutation
+/// instructions" cell is missing are reported on stderr and removed; the
+/// index is reset only when something was dropped (pandas parity).
+fn drop_missing_instructions_table(py: Python<'_>, table: &mut Table) -> PyResult<()> {
+    let missing: Vec<bool> = match table.column("mutation instructions") {
+        Some(Column::StrList(v)) => v.iter().map(|x| x.is_none()).collect(),
+        Some(Column::Float64(v)) => v.iter().map(|x| x.is_nan()).collect(),
+        Some(_) => vec![false; table.nrows()],
+        None => return Err(PyValueError::new_err("KeyError: 'mutation instructions'")),
+    };
+    let n_missing = missing.iter().filter(|&&m| m).count();
+    if n_missing == 0 {
+        return Ok(());
+    }
+    let ids: Vec<String> = match table.column("id") {
+        Some(Column::Str(d)) => (0..d.len())
+            .filter(|&i| missing[i])
+            .map(|i| d.get(i).unwrap_or("").to_string())
+            .collect(),
+        _ => Vec::new(),
+    };
+    let shown: Vec<&str> = ids.iter().take(10).map(String::as_str).collect();
+    eprintln!(
+        "Warning: {} sequence(s) have no mutation instructions (id present in the metadata but not in the FASTA file, or empty cell) and will be excluded from the analysis.",
+        n_missing
+    );
+    eprintln!(
+        "         Example ids: {}{}",
+        shown.join(", "),
+        if ids.len() > shown.len() { ", ..." } else { "" }
+    );
+    let keep: Vec<usize> = (0..table.nrows()).filter(|&i| !missing[i]).collect();
+    *table = table.take(py, &keep);
+    table.reset_index();
+    Ok(())
 }
 
 // ─────────────────────── module-private helpers ───────────────────────
 
-fn parse_metadata_inner<'py>(
-    py: Python<'py>,
-    input_meta: &str,
-) -> PyResult<Bound<'py, PyAny>> {
-    let pd = py.import_bound("pandas")?;
-    let kw = PyDict::new_bound(py);
-    if input_meta.ends_with(".csv") {
-        kw.set_item("sep", ",")?;
+fn parse_metadata_inner(py: Python<'_>, input_meta: &str) -> PyResult<Table> {
+    let sep = if input_meta.ends_with(".csv") {
+        ','
     } else if input_meta.ends_with(".tsv") {
-        kw.set_item("sep", "\t")?;
+        '\t'
     } else {
         // The original silently swallows unknown extensions and returns
         // None. Match that by raising a clean Python error instead — it
@@ -886,18 +1049,92 @@ fn parse_metadata_inner<'py>(
             "Unsupported metadata extension for {}: expected .csv or .tsv",
             input_meta
         )));
-    }
-    let df = pd.call_method("read_csv", (input_meta,), Some(&kw))?;
-    let columns: Vec<String> = df.getattr("columns")?.call_method0("tolist")?.extract()?;
-    if !columns.iter().any(|c| c == "date") {
+    };
+    let mut table = csv_read::read_table(py, input_meta, sep)?;
+    if !table.has_column("date") {
         return Err(PyValueError::new_err(
             "Metadata file must contain a \"date\" column",
         ));
     }
-    let dates_col = df.call_method1("__getitem__", ("date",))?;
-    let parsed = pd.call_method1("to_datetime", (dates_col,))?;
-    df.call_method1("__setitem__", ("date", parsed))?;
-    let kw = PyDict::new_bound(py);
-    kw.set_item("by", "date")?;
-    Ok(df.call_method("sort_values", (), Some(&kw))?)
+    parse_date_column(py, &mut table)?;
+    // Canonical order: stable sort by date (ties keep file order), labels kept.
+    let ns = match table.column("date") {
+        Some(Column::DatetimeNs { ns, .. }) => ns.clone(),
+        _ => unreachable!("date column was just converted"),
+    };
+    let order = dates::stable_argsort(&ns);
+    Ok(table.take(py, &order))
+}
+
+/// Convert the ``date`` column in place to datetime64[ns].
+fn parse_date_column(py: Python<'_>, table: &mut Table) -> PyResult<()> {
+    let ns = {
+        let col = table.column("date").expect("caller checked the column exists");
+        dates::to_datetime_ns(py, col)?
+    };
+    table.set_column("date", Column::DatetimeNs { ns, unit: TimeUnit::Ns });
+    Ok(())
+}
+
+/// Rust side of `parse_mutation_data`: a ``<out>.tsv`` back into a table with
+/// list-valued "mutation instructions", parsed dates, stable date order and a
+/// fresh RangeIndex.
+pub(crate) fn parse_mutation_data_inner(py: Python<'_>, input_tsv: &str) -> PyResult<Table> {
+    let mut table = csv_read::read_table(py, input_tsv, '\t')?;
+    for required in ["id", "date", "mutation instructions"] {
+        if !table.has_column(required) {
+            return Err(PyValueError::new_err(format!(
+                "Mutation instructions file {} must contain a \"{}\" column (expected a <out>.tsv written by PyEvoMotion)",
+                input_tsv, required
+            )));
+        }
+    }
+
+    // ids for error messages
+    let ids: Vec<String> = match table.column("id") {
+        Some(Column::Str(d)) => d.iter().map(|s| s.unwrap_or("").to_string()).collect(),
+        Some(other) => (0..other.len()).map(|i| i.to_string()).collect(),
+        None => unreachable!(),
+    };
+
+    let parsed: Vec<Option<Vec<String>>> = match table.column("mutation instructions") {
+        Some(Column::Str(d)) => {
+            let mut out = Vec::with_capacity(d.len());
+            for (i, cell) in d.iter().enumerate() {
+                match cell {
+                    None => out.push(None),
+                    Some(text) => match csv_read::parse_str_list_literal(text) {
+                        Ok(list) => out.push(Some(list)),
+                        Err(e) => {
+                            return Err(PyValueError::new_err(format!(
+                                "Could not parse the mutation instructions of '{}' in {}: {}",
+                                ids[i], input_tsv, e
+                            )))
+                        }
+                    },
+                }
+            }
+            out
+        }
+        // An entirely empty column is read as float64 (all missing).
+        Some(Column::Float64(v)) if v.iter().all(|x| x.is_nan()) => vec![None; v.len()],
+        Some(_) => {
+            return Err(PyValueError::new_err(format!(
+                "Mutation instructions in {} are not list literals",
+                input_tsv
+            )))
+        }
+        None => unreachable!(),
+    };
+    table.set_column("mutation instructions", Column::StrList(parsed));
+
+    parse_date_column(py, &mut table)?;
+    let ns = match table.column("date") {
+        Some(Column::DatetimeNs { ns, .. }) => ns.clone(),
+        _ => unreachable!(),
+    };
+    let order = dates::stable_argsort(&ns);
+    let mut sorted = table.take(py, &order);
+    sorted.reset_index();
+    Ok(sorted)
 }

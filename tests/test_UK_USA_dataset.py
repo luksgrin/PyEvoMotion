@@ -2,7 +2,8 @@ import os
 import pytest
 import subprocess
 from datetime import datetime
-from .helpers.test_UK_USA_dataset_helpers import ensure_data, data_paths, generate_sampled_df, generate_figure_df
+from .helpers.test_UK_USA_dataset_helpers import ensure_data, data_paths, generate_sampled_df, generate_figure_df, use_full_data
+from .helpers.golden import check_golden
 
 # These tests run against the UK/USA dataset. By default they use the small
 # fixed-seed CI subset (downloaded from the GitHub release `ci-data-<version>`
@@ -56,6 +57,8 @@ def run_dataset_test(setup, set, output_prefix):
         pytest.skip("Skipped due to insufficient observations in random input. Consider re-running this particular test.")
 
     assert os.path.exists(f"tests/data/test3/output/{_date}/{output_prefix}_plots.pdf")
+    if not use_full_data():
+        check_golden(f"tests/data/test3/output/{_date}/{output_prefix}", f"ukusa_{output_prefix}")
 
 def run_fig_test(setup, set, output_prefix, dt="7D", load_from=None):
     """Run the figure-style analysis for ``set``.
@@ -99,6 +102,8 @@ def run_fig_test(setup, set, output_prefix, dt="7D", load_from=None):
         print(result.stdout)
         print(result.stderr)
     assert os.path.exists(f"tests/data/test3/output/{_date}/{output_prefix}_plots.pdf")
+    if not use_full_data():
+        check_golden(f"tests/data/test3/output/{_date}/{output_prefix}", f"ukusa_{output_prefix}")
     return f"tests/data/test3/output/{_date}/{output_prefix}"
 
 

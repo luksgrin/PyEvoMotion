@@ -1,0 +1,65 @@
+{
+    "mean number of mutations model": {
+        "parameters": {
+            "m": 0.2015882609913748,
+            "b": 35.485890882991114
+        },
+        "confidence_intervals": {
+            "m": [
+                0.1847691011580872,
+                0.2184074208246624
+            ],
+            "b": [
+                35.10475966594762,
+                35.86702210003461
+            ]
+        },
+        "expression": "mx + b",
+        "confidence_level": 0.95,
+        "r2": 0.9377584398262373
+    },
+    "scaled var number of mutations model": {
+        "linear_model": {
+            "parameters": {
+                "m": 0.27855367292198324
+            },
+            "confidence_intervals": {
+                "m": [
+                    0.1848965446755435,
+                    0.372210801168423
+                ]
+            },
+            "expression": "mx",
+            "r2": -0.06566423384411002,
+            "confidence_level": 0.95
+        },
+        "power_law_model": {
+            "parameters": {
+                "d": 2.5122543310313574,
+                "alpha": 0.3343080295001129
+            },
+            "confidence_intervals": {
+                "d": [
+                    0.8096940988414756,
+                    4.214814563221239
+                ],
+                "alpha": [
+                    0.1170501612801734,
+                    0.5515658977200524
+                ]
+            },
+            "expression": "d*x^alpha",
+            "r2": 0.37267890583786734,
+            "confidence_level": 0.95
+        },
+        "model_selection": {
+            "selected": "power_law",
+            "linear_AIC": 207.58847580003055,
+            "power_law_AIC": 188.61173472533815,
+            "delta_AIC_linear": 18.9767410746924,
+            "delta_AIC_power_law": 0.0,
+            "akaike_weight_linear": 7.572166356746802e-05,
+            "akaike_weight_power_law": 0.9999242783364325
+        }
+    }
+}

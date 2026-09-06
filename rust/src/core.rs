@@ -7,6 +7,8 @@ use pyo3::types::{PyAny, PyDict, PyList, PyTuple, PyType};
 
 use crate::base::{self, PyEvoMotionBase};
 use crate::parser::PyEvoMotionParser;
+use crate::stats;
+use crate::table::{Column, IndexKind, Table, TablePy, TimeUnit, NAT};
 
 const MUTATION_TYPES: &[&str] = &["substitutions", "indels"];
 
@@ -134,7 +136,7 @@ impl PyEvoMotionCore {
         _kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyClassInitializer<Self> {
         PyClassInitializer::from(PyEvoMotionBase)
-            .add_subclass(PyEvoMotionParser)
+            .add_subclass(PyEvoMotionParser::default())
             .add_subclass(Self)
     }
 
@@ -151,8 +153,39 @@ impl PyEvoMotionCore {
     }
 
     // count_mutation_types ----------------------------------------------
+    /// Add the per-sequence counts (`number of substitutions`, `insertions`,
+    /// `deletions`, `indels`, `mutations`) computed from the mutation
+    /// instructions. Row-wise, so it is correct whatever the index labels.
     fn count_mutation_types<'py>(slf: &Bound<'py, Self>) -> PyResult<()> {
         let py = slf.py();
+        let parser = slf.as_any().downcast::<PyEvoMotionParser>()?;
+        if !PyEvoMotionParser::is_pandas_visible(parser) {
+            return PyEvoMotionParser::with_table(parser, |_, t| {
+                let lists: Vec<Vec<String>> = match t.column("mutation instructions") {
+                    Some(Column::StrList(v)) => v.iter().map(|x| x.clone().unwrap_or_default()).collect(),
+                    Some(_) => return Err(PyValueError::new_err(
+                        "`mutation instructions` must be a column of lists of strings",
+                    )),
+                    None => return Err(PyValueError::new_err("KeyError: 'mutation instructions'")),
+                };
+                let count = |prefix: char| -> Vec<i64> {
+                    lists.iter().map(|m| m.iter().filter(|s| s.starts_with(prefix)).count() as i64).collect()
+                };
+                let subs = count('s');
+                let ins = count('i');
+                let del = count('d');
+                let indels: Vec<i64> = ins.iter().zip(&del).map(|(a, b)| a + b).collect();
+                let total: Vec<i64> = lists.iter().map(|m| m.len() as i64).collect();
+                t.set_column("number of substitutions", Column::Int64(subs));
+                t.set_column("number of indels", Column::Int64(indels));
+                t.set_column("number of insertions", Column::Int64(ins));
+                t.set_column("number of deletions", Column::Int64(del));
+                t.set_column("number of mutations", Column::Int64(total));
+                Ok(())
+            });
+        }
+        // pandas-visible: mutate the DataFrame that was handed out, in place,
+        // so the caller's reference sees the new columns (as before).
         let pd = py.import_bound("pandas")?;
         let data = slf.getattr("data")?;
         let mut_instr_series = data.call_method1("__getitem__", ("mutation instructions",))?;
@@ -187,12 +220,18 @@ impl PyEvoMotionCore {
     fn get_lengths<'py>(slf: &Bound<'py, Self>) -> PyResult<Bound<'py, PyAny>> {
         let py = slf.py();
         let pd = py.import_bound("pandas")?;
-        let data = slf.getattr("data")?;
-        let mut_instr_series = data.call_method1("__getitem__", ("mutation instructions",))?;
-        let mut_instr: Vec<Vec<String>> = mut_instr_series.call_method0("tolist")?.extract()?;
-        let reference = slf.getattr("reference")?;
-        let ref_seq = reference.getattr("seq")?;
-        let ref_len: i64 = ref_seq.call_method0("__len__")?.extract()?;
+        let parser = slf.as_any().downcast::<PyEvoMotionParser>()?;
+        let mut_instr: Vec<Vec<String>> = if PyEvoMotionParser::is_pandas_visible(parser) {
+            let data = slf.getattr("data")?;
+            let series = data.call_method1("__getitem__", ("mutation instructions",))?;
+            series.call_method0("tolist")?.extract()?
+        } else {
+            PyEvoMotionParser::with_table(parser, |_, t| match t.column("mutation instructions") {
+                Some(Column::StrList(v)) => Ok(v.iter().map(|x| x.clone().unwrap_or_default()).collect()),
+                _ => Err(PyValueError::new_err("KeyError: 'mutation instructions'")),
+            })?
+        };
+        let ref_len = PyEvoMotionParser::reference_len(parser)?;
 
         let lengths: Vec<i64> = mut_instr
             .iter()
@@ -237,6 +276,15 @@ impl PyEvoMotionCore {
                 )))
             }
         };
+        let parser = slf.as_any().downcast::<PyEvoMotionParser>()?;
+        if !PyEvoMotionParser::is_pandas_visible(parser) {
+            // The mask is (deliberately) not applied; only the index reset
+            // is observable.
+            return PyEvoMotionParser::with_table(parser, |_, t| {
+                t.reset_index();
+                Ok(())
+            });
+        }
         let data = slf.getattr("data")?;
         let _ = data.call_method1("__getitem__", (_mask,))?;
         let kw = PyDict::new_bound(slf.py());
@@ -253,6 +301,22 @@ impl PyEvoMotionCore {
             return Err(PyValueError::new_err("Threshold must be between 0 and 1"));
         }
         let py = slf.py();
+        if !matches!(how, "gt" | "lt" | "eq") {
+            return Err(PyValueError::new_err(format!(
+                "Filter \"{}\" not recognized",
+                how
+            )));
+        }
+        let parser = slf.as_any().downcast::<PyEvoMotionParser>()?;
+        if !PyEvoMotionParser::is_pandas_visible(parser) {
+            // The mask is (deliberately) not applied; only the index reset
+            // is observable. get_lengths is still called so overrides run.
+            let _ = slf.call_method0("get_lengths")?;
+            return PyEvoMotionParser::with_table(parser, |_, t| {
+                t.reset_index();
+                Ok(())
+            });
+        }
         let data = slf.getattr("data")?;
         let n_count = data.call_method1("__getitem__", ("N count",))?;
         let lengths = slf.call_method0("get_lengths")?;
@@ -260,13 +324,7 @@ impl PyEvoMotionCore {
         let _mask = match how {
             "gt" => n_freq.call_method1("__gt__", (threshold,))?,
             "lt" => n_freq.call_method1("__lt__", (threshold,))?,
-            "eq" => n_freq.call_method1("__eq__", (threshold,))?,
-            other => {
-                return Err(PyValueError::new_err(format!(
-                    "Filter \"{}\" not recognized",
-                    other
-                )))
-            }
+            _ => n_freq.call_method1("__eq__", (threshold,))?,
         };
         let _ = data.call_method1("__getitem__", (_mask,))?;
         let kw = PyDict::new_bound(py);
@@ -277,9 +335,71 @@ impl PyEvoMotionCore {
     }
 
     // compute_stats -----------------------------------------------------
+    /// Per-window statistics: rows are binned into windows of `DT` anchored
+    /// at `origin` (pandas Grouper semantics), windows with fewer than two
+    /// rows are discarded, and for each remaining window the mean and the
+    /// sample variance of every selected count column are reported together
+    /// with the window size. Tick frequencies (`7D`, `12h`, ...) run in Rust
+    /// with deterministic arithmetic; anchored frequencies (`W`, `MS`, ...)
+    /// take the pandas path.
     #[pyo3(signature = (DT, origin, mutation_kind="all"))]
     #[allow(non_snake_case)]
     fn compute_stats<'py>(
+        slf: &Bound<'py, Self>,
+        DT: &str,
+        origin: Bound<'py, PyAny>,
+        mutation_kind: &str,
+    ) -> PyResult<Bound<'py, PyAny>> {
+        let py = slf.py();
+        let dt_ns = match stats::parse_tick_ns(DT) {
+            Some(v) => v,
+            None => return Self::compute_stats_pandas(slf, DT, origin, mutation_kind),
+        };
+        let pd = py.import_bound("pandas")?;
+        let origin_ns: i64 = pd
+            .call_method1("Timestamp", (&origin,))?
+            .getattr("value")?
+            .extract()?;
+        let kinds = mutation_type_switch(mutation_kind)?;
+        let levels: Vec<String> = kinds.iter().map(|k| format!("number of {}", k)).collect();
+
+        let parser = slf.as_any().downcast::<PyEvoMotionParser>()?;
+        let stats_table = PyEvoMotionParser::with_table(parser, |py, t| {
+            // Edge case (as before): when the first row is the only one on the
+            // origin date, duplicate it so its window is not discarded.
+            let dates = match t.column("date") {
+                Some(Column::DatetimeNs { ns, .. }) => ns,
+                _ => return Err(PyValueError::new_err("KeyError: 'date'")),
+            };
+            let duplicated;
+            let work: &Table = if !dates.is_empty()
+                && dates[0] == origin_ns
+                && dates.iter().filter(|&&d| d == origin_ns).count() == 1
+            {
+                let mut rows: Vec<usize> = (0..dates.len()).collect();
+                rows.push(0);
+                let mut dup = t.take(py, &rows);
+                // re-sort (stable) so the duplicate sits next to the original
+                let ns2 = match dup.column("date") {
+                    Some(Column::DatetimeNs { ns, .. }) => ns.clone(),
+                    _ => unreachable!(),
+                };
+                let order = crate::dates::stable_argsort(&ns2);
+                dup = dup.take(py, &order);
+                dup.index = IndexKind::range(dup.nrows());
+                duplicated = dup;
+                &duplicated
+            } else {
+                t
+            };
+            stats::compute_stats_table(py, work, dt_ns, origin_ns, &levels)
+        })?;
+        stats_table.to_pandas(py)
+    }
+
+    // The original pandas implementation, kept for non-tick frequencies.
+    #[allow(non_snake_case)]
+    fn compute_stats_pandas<'py>(
         slf: &Bound<'py, Self>,
         DT: &str,
         origin: Bound<'py, PyAny>,
@@ -833,7 +953,7 @@ impl PyEvoMotion {
         _kwargs: Option<&Bound<'_, PyDict>>,
     ) -> PyClassInitializer<Self> {
         PyClassInitializer::from(PyEvoMotionBase)
-            .add_subclass(PyEvoMotionParser)
+            .add_subclass(PyEvoMotionParser::default())
             .add_subclass(PyEvoMotionCore)
             .add_subclass(Self)
     }
@@ -883,20 +1003,35 @@ impl PyEvoMotion {
             ),
         )?;
 
+        // Snapshot what the constructor needs from the table without
+        // materialising a DataFrame: emptiness (checked through the
+        // overridable _check_dataset_is_not_empty, which only reads `.empty`),
+        // the earliest date, and the column names.
+        let parser = slf.as_any().downcast::<PyEvoMotionParser>()?;
+        let (snapshot, min_ns, columns) = PyEvoMotionParser::with_table(parser, |py, t| {
+            let snapshot = TablePy { inner: t.clone_ref(py) };
+            let min_ns = match t.column("date") {
+                Some(Column::DatetimeNs { ns, .. }) => ns.iter().copied().filter(|&v| v != NAT).min(),
+                _ => None,
+            };
+            let columns: Vec<String> = t.column_names().iter().map(|s| s.to_string()).collect();
+            Ok((snapshot, min_ns, columns))
+        })?;
         slf.call_method1(
             "_check_dataset_is_not_empty",
             (
-                slf.getattr("data")?,
+                Py::new(py, snapshot)?,
                 "Perhaps there were no entries or the filters provided (if any) are too restrictive.",
             ),
         )?;
 
-        // origin = data["date"].min(), tightened to the date-range start if one
-        // was given (and is non-empty).
-        let data = slf.getattr("data")?;
-        let date_min = data
-            .call_method1("__getitem__", ("date",))?
-            .call_method0("min")?;
+        // origin = data["date"].min() (a Timestamp), tightened to the
+        // date-range start if one was given (and is non-empty).
+        let pd = py.import_bound("pandas")?;
+        let date_min = match min_ns {
+            Some(ns) => pd.call_method1("Timestamp", (ns,))?,
+            None => pd.getattr("NaT")?,
+        };
         let origin = match &date_range {
             Some(dr) => {
                 let start = dr.call_method1("__getitem__", (0i64,))?;
@@ -913,7 +1048,6 @@ impl PyEvoMotion {
 
         // A loaded TSV already carries the per-sequence counts; reuse them
         // unless asked to recount (or they are missing from the file).
-        let columns: Vec<String> = data.getattr("columns")?.call_method0("tolist")?.extract()?;
         let has_counts = [
             "number of substitutions",
             "number of indels",

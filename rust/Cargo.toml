@@ -23,6 +23,9 @@ nalgebra = "0.33"
 # Pure-Rust MAFFT port: replaces the external `mafft` binary so the wheel
 # is self-contained (no system install, no mafft_install.sh).
 mafft = "0.1"
+# Filter patterns (`--filter key value`, `*` wildcards) on the internal table;
+# patterns the crate cannot compile fall back to Python's `re`.
+regex = "1"
 
 [profile.release]
 lto = true

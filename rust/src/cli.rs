@@ -578,6 +578,35 @@ fn restructure_regression_results<'py>(
 
 // ─────────────────────── orchestration ───────────────────────
 
+/// `instance.data` as TSV, straight from the Rust table when the dataset is
+/// Rust-owned (no DataFrame is materialised), otherwise from the DataFrame.
+fn write_tsv_of_data(py: Python<'_>, instance: &Bound<'_, PyAny>, path: &str) -> PyResult<()> {
+    if let Ok(parser) = instance.downcast::<crate::parser::PyEvoMotionParser>() {
+        if !crate::parser::PyEvoMotionParser::is_pandas_visible(parser) {
+            let written = crate::parser::PyEvoMotionParser::with_table(parser, |py, t| {
+                crate::csv_write::write_delimited(py, t, path, '\t')
+            })?;
+            if written {
+                return Ok(());
+            }
+        }
+    }
+    write_tsv_of_dataframe(py, &instance.getattr("data")?, path)
+}
+
+/// A DataFrame as TSV through the Rust writer (pandas fallback for content
+/// the writer does not render).
+fn write_tsv_of_dataframe(py: Python<'_>, df: &Bound<'_, PyAny>, path: &str) -> PyResult<()> {
+    let table = crate::table::Table::from_pandas(py, df)?;
+    if !crate::csv_write::write_delimited(py, &table, path, '\t')? {
+        let kw = PyDict::new_bound(py);
+        kw.set_item("sep", "\t")?;
+        kw.set_item("index", false)?;
+        df.call_method("to_csv", (path,), Some(&kw))?;
+    }
+    Ok(())
+}
+
 /// Write the run arguments to `{out}_run_args.json` (-xj). Unlike the
 /// original, a missing date_range serialises to null rather than crashing.
 fn export_run_args(py: Python<'_>, args: &Args) -> PyResult<()> {
@@ -677,12 +706,7 @@ fn run(py: Python<'_>, args: Args) -> PyResult<()> {
     // loaded from such a file, in which case rewriting it would at best be
     // redundant and at worst clobber the input when `out` matches.
     if args.load_mutation_instructions.is_none() {
-        let csv_kw = PyDict::new_bound(py);
-        csv_kw.set_item("sep", "\t")?;
-        csv_kw.set_item("index", false)?;
-        instance
-            .getattr("data")?
-            .call_method("to_csv", (format!("{}.tsv", args.out),), Some(&csv_kw))?;
+        write_tsv_of_data(py, &instance, &format!("{}.tsv", args.out))?;
     }
 
     // Run the analysis.
@@ -709,11 +733,8 @@ fn run(py: Python<'_>, args: Args) -> PyResult<()> {
         cleaned.set_item(k, remove_model_functions(py, &v)?)?;
     }
 
-    // Export stats TSV.
-    let stats_kw = PyDict::new_bound(py);
-    stats_kw.set_item("sep", "\t")?;
-    stats_kw.set_item("index", false)?;
-    stats.call_method("to_csv", (format!("{}_stats.tsv", args.out),), Some(&stats_kw))?;
+    // Export stats TSV (same bytes as DataFrame.to_csv(sep="\t", index=False)).
+    write_tsv_of_dataframe(py, &stats, &format!("{}_stats.tsv", args.out))?;
 
     // Export regression models JSON.
     let json = py.import_bound("json")?;

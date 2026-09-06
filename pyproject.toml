@@ -62,6 +62,8 @@ include = [
     { path = "tests/data/test2/**/*", format = "sdist" },
     { path = "tests/data/test3/ids_sampled_for_figure.json", format = "sdist" },
     { path = "tests/data/test3/ids_sampled_for_ci.json", format = "sdist" },
+    { path = "tests/data/golden/**/*", format = "sdist" },
+    { path = "tests/test_golden_outputs.py", format = "sdist" },
     { path = "rust/Cargo.toml", format = "sdist" },
     { path = "rust/Cargo.lock", format = "sdist" },
     { path = "rust/src/**/*", format = "sdist" },
